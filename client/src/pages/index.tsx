@@ -3,6 +3,16 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store';
 import { fetchUserProfile } from '../components/user/store/user.slice';
 
+// Import our migrated components
+import UserProfileSummary from '../components/user/components/UserProfileSummary';
+import UserScore from '../components/engagement/components/UserScore';
+import WeeklyKingOfQuiz from '../components/engagement/components/WeeklyKingOfQuiz';
+import DailyQuizBanner from '../components/learning/components/DailyQuizBanner';
+import FeaturedCategories from '../components/learning/components/FeaturedCategories';
+import RecentQuizzes from '../components/learning/components/RecentQuizzes';
+import AdComponent from '../components/common/components/AdComponent';
+import BottomNav from '../components/common/components/BottomNav';
+
 interface HomePageProps {
   navigate: (route: string, params?: any) => void;
 }
@@ -20,68 +30,49 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
   }, [dispatch, currentUser?.id]);
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#F5F5F5', minHeight: '100vh' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+    <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#F5F5F5', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '0 18px' }}>
         <div>
-          <h2>DSA-MCQ Web</h2>
+          {/* Render UserScore Component */}
+          <UserScore />
         </div>
-        {currentUser && (
-          <div style={{ textAlign: 'right' }}>
-            <strong>{currentUser.fullName}</strong>
-            <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>{currentUser.xp || 0} XP (Level {currentUser.level || 1})</p>
-          </div>
-        )}
+        <div>
+          {/* Render UserProfileSummary Component */}
+          <UserProfileSummary
+            fullName={currentUser?.fullName || ''}
+            xp={currentUser?.xp || 0}
+          />
+        </div>
       </header>
 
-      <main style={{ maxWidth: '600px', margin: '0 auto' }}>
-        <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3>Weekly King of Quiz</h3>
-          <p>Compete and conquer the leaderboards!</p>
-          <button
-            onClick={() => navigate('Achievement')}
-            style={{ backgroundColor: '#00B5D8', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer' }}
-          >
-            View Achievements
-          </button>
-        </div>
+      <main style={{ maxWidth: '600px', margin: '0 auto', width: '100%', flex: 1 }}>
+        {/* Render WeeklyKingOfQuiz Component */}
+        <WeeklyKingOfQuiz navigate={navigate} />
 
-        <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3>Daily Quiz</h3>
-          <p>Test your skills with today's challenge!</p>
-          <button
-            onClick={() => navigate('DailyQuiz')}
-            style={{ backgroundColor: '#FF7A3C', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer' }}
-          >
-            Take Daily Quiz
-          </button>
-        </div>
+        {/* Render DailyQuizBanner Component */}
+        <DailyQuizBanner navigate={navigate} />
 
-        <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3>Featured Categories</h3>
-          <p>Browse DSA topics: Arrays, Linked Lists, Trees, Graphs, Dynamic Programming.</p>
-          <button
-            onClick={() => navigate('Bookmark')}
-            style={{ backgroundColor: '#4CAF50', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer' }}
-          >
-            My Bookmarks
-          </button>
-        </div>
+        {/* Render Ad Component */}
+        <AdComponent />
 
-        <div style={{ textAlign: 'center', marginTop: '30px' }}>
-          <button
-            onClick={() => navigate('Profile')}
-            style={{ background: 'none', border: '1px solid #ccc', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', marginRight: '10px' }}
-          >
-            Profile & Settings
-          </button>
+        {/* Render FeaturedCategories Component */}
+        <FeaturedCategories />
+
+        {/* Render RecentQuizzes Component */}
+        <RecentQuizzes navigate={navigate} />
+
+        <div style={{ textAlign: 'center', marginTop: '30px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
           <button
             onClick={() => navigate('Goal')}
-            style={{ background: 'none', border: '1px solid #ccc', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}
+            style={{ background: '#fff', border: '1px solid #ccc', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
           >
             Set Daily Goals
           </button>
         </div>
       </main>
+
+      {/* Render Bottom Nav Component */}
+      <BottomNav navigate={navigate} activeScreen="Home" />
     </div>
   );
 };
