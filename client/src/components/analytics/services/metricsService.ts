@@ -1,4 +1,4 @@
-import { sqliteService } from '../../common/services/sqliteService';
+import { dbService } from '../../common/services/dbService';
 import { DevOpsMetric, DevOpsMetricType, DevOpsMetricPayload } from '../store/primitives/DevOpsMetric';
 
 class MetricsService {
@@ -13,7 +13,7 @@ class MetricsService {
                 payload: JSON.stringify(metric.payload),
                 is_dirty: 1,
             };
-            await sqliteService.create('devops_metrics', metricToSave);
+            await dbService.create('devops_metrics', metricToSave);
         } catch (error) {
             console.error(`[MetricsService] Failed to log metric ${type}:`, error);
         }

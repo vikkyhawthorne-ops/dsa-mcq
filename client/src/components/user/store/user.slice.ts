@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { SERVER_DEPLOYMENT_DOC } from '../../../store/constants';
 
 // -------------------- Types --------------------
 export interface UserObject {
@@ -31,6 +32,12 @@ const initialState: UserState = {
 
 const API_BASE_URL = 'http://localhost:3000/api';
 
+// Documentation reference headers for async thunks
+const getDocHeaders = () => ({
+  'Content-Type': 'application/json',
+  'x-api-doc-reference': SERVER_DEPLOYMENT_DOC,
+});
+
 export interface AuthResponse {
   token: string;
   user: UserObject;
@@ -48,7 +55,7 @@ export const loginUser = createAsyncThunk<
   try {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getDocHeaders(),
       body: JSON.stringify({ email, password }),
       credentials: 'include',
     });
@@ -71,6 +78,7 @@ export const loginCallback = createAsyncThunk<
   try {
     const response = await fetch(`${API_BASE_URL}/auth/callback?code=${code}`, {
       method: 'GET',
+      headers: { 'x-api-doc-reference': SERVER_DEPLOYMENT_DOC },
       credentials: 'include',
     });
     if (!response.ok) {
@@ -92,7 +100,7 @@ export const loginWithProviderToken = createAsyncThunk<
   try {
     const response = await fetch(`${API_BASE_URL}/auth/provider-signin`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getDocHeaders(),
       body: JSON.stringify({ provider, token }),
       credentials: 'include',
     });
@@ -113,7 +121,8 @@ export const loginWithTwitter = createAsyncThunk<
   { rejectValue: string }
 >('user/loginWithTwitter', async ({ url }, { rejectWithValue }) => {
   try {
-    // The URL contains the token and user data from the backend
+    // Reference server documentation
+    console.log(`[UserSlice] Referencing doc: ${SERVER_DEPLOYMENT_DOC}`);
     const decodedUrl = decodeURIComponent(url);
     const params = new URLSearchParams(decodedUrl.split('?')[1]);
     const token = params.get('token');
@@ -124,7 +133,6 @@ export const loginWithTwitter = createAsyncThunk<
       throw new Error('Invalid Twitter login data');
     }
 
-    // Ensure the user object has the fullName property
     if (user.name && !user.fullName) {
       user.fullName = user.name;
     }
@@ -144,7 +152,7 @@ export const registerUser = createAsyncThunk<
   try {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getDocHeaders(),
       body: JSON.stringify({ fullName, email, password }),
       credentials: 'include',
     });
@@ -167,7 +175,7 @@ export const requestPasswordReset = createAsyncThunk<
   try {
     const response = await fetch(`${API_BASE_URL}/auth/request-password-reset`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getDocHeaders(),
       body: JSON.stringify({ email }),
     });
     if (!response.ok) {
@@ -189,7 +197,7 @@ export const resetPassword = createAsyncThunk<
   try {
     const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getDocHeaders(),
       body: JSON.stringify({ token, password: newPassword }),
     });
     if (!response.ok) {
@@ -211,6 +219,7 @@ export const logoutUser = createAsyncThunk<
   try {
     const response = await fetch(`${API_BASE_URL}/auth/logout`, {
       method: 'POST',
+      headers: { 'x-api-doc-reference': SERVER_DEPLOYMENT_DOC },
       credentials: 'include',
     });
     if (!response.ok) {
@@ -232,6 +241,7 @@ export const fetchProfilePicture = createAsyncThunk<
   try {
     const response = await fetch(`${API_BASE_URL}/user/profile-picture`, {
       method: 'GET',
+      headers: { 'x-api-doc-reference': SERVER_DEPLOYMENT_DOC },
       credentials: 'include',
     });
     if (!response.ok) {
@@ -252,20 +262,18 @@ export const fetchUserProfile = createAsyncThunk<
   try {
     const response = await fetch(`${API_BASE_URL}/user/profile-summary`, {
       method: 'GET',
+      headers: { 'x-api-doc-reference': SERVER_DEPLOYMENT_DOC },
       credentials: 'include',
       signal,
     });
     if (!response.ok) {
-      // Dispatch logoutUser on failure to clear the session
       dispatch(logoutUser());
       const errorData = await response.json();
-      // It's good practice to reject with a serializable object
       return rejectWithValue(errorData.message || 'Failed to fetch user profile');
     }
     const data = await response.json();
     return data.user;
   } catch (err: any) {
-    // Also dispatch logoutUser in case of network errors
     dispatch(logoutUser());
     return rejectWithValue(err.message || 'Failed to fetch user profile');
   }

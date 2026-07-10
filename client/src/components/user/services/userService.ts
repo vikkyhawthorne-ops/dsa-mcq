@@ -1,4 +1,4 @@
-import { sqliteService } from '../../common/services/sqliteService';
+import { dbService } from '../../common/services/dbService';
 import { User } from '../store/primitives/User';
 
 class UserService {
@@ -9,11 +9,11 @@ class UserService {
   async hydrateUser(): Promise<User | null> {
     try {
       // Initialize the database connection if it hasn't been already.
-      await sqliteService.init();
+      await dbService.init();
 
       // For now, we just check if any user data exists in the user_engagement table.
       // As per instructions, we are focusing on the case where no user data is available.
-      const userEngagementData = await sqliteService.getAll('user_engagement');
+      const userEngagementData = await dbService.getAll('user_engagement');
 
       if (userEngagementData.length === 0) {
         // No user data found, return null.

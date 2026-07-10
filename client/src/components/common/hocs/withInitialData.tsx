@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { sqliteService } from '../services/sqliteService';
+import { dbService } from '../services/dbService';
 import { syncService } from '../services/syncService';
 
 // Import all stores and hydrate actions
@@ -30,7 +30,7 @@ const createDataWrapper = (
       const initialize = async () => {
         try {
           console.log(`[HOC] Initializing ${domainName} data...`);
-          await sqliteService.init();
+          await dbService.init();
 
           const dispatch = store.dispatch as typeof store.dispatch;
           const getState = store.getState as typeof store.getState;

@@ -1,4 +1,4 @@
-import { sqliteService } from './sqliteService';
+import { dbService } from './dbService';
 import CryptoJS from 'crypto-js';
 
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -21,6 +21,10 @@ class SyncService {
       return;
     }
 
+    // Explicitly check the environment variable to determine db/sync behavior if needed.
+    const dbType = process.env.DB_TYPE || process.env.REACT_APP_DB_TYPE || 'sqlite';
+    console.log(`[SyncService] Sync configured for DB type: ${dbType}`);
+
     const state = getState();
     const token = state.user.token;
     const syncKey = state.user.syncKey;
@@ -38,7 +42,7 @@ class SyncService {
 
       // 1. Collect all dirty records
       for (const tableName of TABLES_TO_SYNC) {
-        const [resultSet] = await sqliteService.runQuery(
+        const [resultSet] = await dbService.runQuery(
           `SELECT * FROM ${tableName} WHERE is_dirty = 1`,
         );
         const records = resultSet.rows.raw();
@@ -80,23 +84,16 @@ class SyncService {
             // All records from server are considered "clean"
             record.is_dirty = 0;
 
-            // Convert server column names if necessary (e.g., camelCase to snake_case if DB expects it)
-            // Assuming DB matches server model for now as per sqliteService.ts
-
             const columns = Object.keys(record);
             const placeholders = columns.map(() => '?').join(',');
             const values = Object.values(record);
 
-            await sqliteService.runQuery(
+            await dbService.runQuery(
                 `INSERT OR REPLACE INTO ${tableName} (${columns.join(',')}) VALUES (${placeholders})`,
                 values
             );
         }
       }
-
-      // 4. Update the Redux store
-      // This part depends on how you want to notify slices about new data.
-      // One way is to dispatch a global "syncCompleted" action that slices can listen to.
 
       console.log('[SyncService] Sync completed successfully.');
     } catch (error) {

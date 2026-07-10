@@ -1,11 +1,11 @@
 import { createSlice, createEntityAdapter, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { Anomaly } from './primitives/Anomaly';
-import { sqliteService } from '../../common/services/sqliteService';
+import { dbService } from '../../common/services/dbService';
 
 export const hydrateAnomalies = createAsyncThunk<Anomaly[]>(
     'anomalies/hydrate',
     async () => {
-        const anomalies = await sqliteService.getAll('anomalies');
+        const anomalies = await dbService.getAll('anomalies');
         // The evidence field needs to be parsed from JSON
         return anomalies.map(a => ({ ...a, evidence: JSON.parse(a.evidence) })) as Anomaly[];
     }

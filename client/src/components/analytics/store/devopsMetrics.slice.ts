@@ -1,11 +1,11 @@
 import { createSlice, createEntityAdapter, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { DevOpsMetric } from './primitives/DevOpsMetric';
-import { sqliteService } from '../../common/services/sqliteService';
+import { dbService } from '../../common/services/dbService';
 
 export const hydrateDevOpsMetrics = createAsyncThunk<DevOpsMetric[]>(
     'devopsMetrics/hydrate',
     async () => {
-        const metrics = await sqliteService.getAll('devops_metrics');
+        const metrics = await dbService.getAll('devops_metrics');
         // The payload field needs to be parsed from JSON
         return metrics.map(m => ({ ...m, payload: JSON.parse(m.payload) })) as DevOpsMetric[];
     }

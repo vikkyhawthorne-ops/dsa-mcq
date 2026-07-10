@@ -6,7 +6,7 @@ import {
   Update,
 } from '@reduxjs/toolkit';
 import { UserQuestionData } from './primitives/UserQuestionData';
-import { sqliteService } from '../../common/services/sqliteService';
+import { dbService } from '../../common/services/dbService';
 import { learningService } from '../services/learningService';
 import { syncService } from '../../common/services/syncService';
 
@@ -38,11 +38,11 @@ const userQuestionDataAdapter = createEntityAdapter<UserQuestionData>({
 export const hydrateUserQuestionData = createAsyncThunk<UserQuestionData[], void, { state: any }>(
   'userQuestionData/hydrate',
   async (_, thunkAPI) => {
-    const data = await sqliteService.getAll('user_question_data');
+    const data = await dbService.getAll('user_question_data');
 
     await syncService.performSync(thunkAPI.dispatch, thunkAPI.getState);
 
-    const syncedData = await sqliteService.getAll('user_question_data');
+    const syncedData = await dbService.getAll('user_question_data');
     return syncedData.map(dbUqd => JSON.parse(JSON.stringify(parseUqd(dbUqd))));
   },
 );
@@ -52,7 +52,7 @@ export const addUserQuestionDataDb = createAsyncThunk<
   { userId: string; questionId: string }
 >('userQuestionData/add', async ({ userId, questionId }) => {
   const newUserQuestionData = new UserQuestionData(userId, questionId);
-  await sqliteService.create('user_question_data', stringifyUqd(newUserQuestionData));
+  await dbService.create('user_question_data', stringifyUqd(newUserQuestionData));
   return JSON.parse(JSON.stringify(newUserQuestionData));
 });
 
@@ -61,10 +61,10 @@ export const answerCorrectlyDb = createAsyncThunk<
   { userId: string; questionId: string; techniqueIds?: string[] }
 >('userQuestionData/answerCorrectly', async ({ userId, questionId, techniqueIds }) => {
   const id = `${userId}-${questionId}`;
-  const existingData = await sqliteService.getById('user_question_data', id);
+  const existingData = await dbService.getById('user_question_data', id);
   const uqd = existingData ? parseUqd(existingData) : new UserQuestionData(userId, questionId);
   uqd.updateRecallOnCorrectAnswer(techniqueIds);
-  await sqliteService.update('user_question_data', id, stringifyUqd(uqd));
+  await dbService.update('user_question_data', id, stringifyUqd(uqd));
   return JSON.parse(JSON.stringify(uqd));
 });
 
@@ -73,10 +73,10 @@ export const answerIncorrectlyDb = createAsyncThunk<
   { userId: string; questionId: string; techniqueIds?: string[] }
 >('userQuestionData/answerIncorrectly', async ({ userId, questionId, techniqueIds }) => {
     const id = `${userId}-${questionId}`;
-    const existingData = await sqliteService.getById('user_question_data', id);
+    const existingData = await dbService.getById('user_question_data', id);
     const uqd = existingData ? parseUqd(existingData) : new UserQuestionData(userId, questionId);
     uqd.updateRecallOnIncorrectAnswer(techniqueIds);
-    await sqliteService.update('user_question_data', id, stringifyUqd(uqd));
+    await dbService.update('user_question_data', id, stringifyUqd(uqd));
     return JSON.parse(JSON.stringify(uqd));
 });
 
@@ -85,10 +85,10 @@ export const updateUserQuestionSM2DataDb = createAsyncThunk<
   { userId: string; questionId: string; quality: number }
 >('userQuestionData/updateSm2', async ({ userId, questionId, quality }) => {
     const id = `${userId}-${questionId}`;
-    const existingData = await sqliteService.getById('user_question_data', id);
+    const existingData = await dbService.getById('user_question_data', id);
     const uqd = existingData ? parseUqd(existingData) : new UserQuestionData(userId, questionId);
     uqd.sm2 = learningService.updateSM2Data(uqd.sm2, quality);
-    await sqliteService.update('user_question_data', id, stringifyUqd(uqd));
+    await dbService.update('user_question_data', id, stringifyUqd(uqd));
     return JSON.parse(JSON.stringify(uqd));
 });
 
@@ -97,12 +97,12 @@ export const setUserQuestionDataDb = createAsyncThunk<
   { userId: string; questionId: string; isCorrect: boolean; quality: number; techniqueIds?: string[] }
 >('userQuestionData/set', async ({ userId, questionId, isCorrect, quality, techniqueIds }) => {
     const id = `${userId}-${questionId}`;
-    const existingData = await sqliteService.getById('user_question_data', id);
+    const existingData = await dbService.getById('user_question_data', id);
     const uqd = existingData ? parseUqd(existingData) : new UserQuestionData(userId, questionId);
 
     const updatedUqd = learningService.processAnswer(uqd, isCorrect, quality, techniqueIds);
 
-    await sqliteService.update('user_question_data', id, stringifyUqd(updatedUqd));
+    await dbService.update('user_question_data', id, stringifyUqd(updatedUqd));
     return JSON.parse(JSON.stringify(updatedUqd));
 });
 

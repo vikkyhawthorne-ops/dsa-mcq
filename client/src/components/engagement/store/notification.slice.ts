@@ -6,7 +6,7 @@ import {
   Update,
 } from '@reduxjs/toolkit';
 import { Notification } from './primitives/Notification';
-import { sqliteService } from '../../common/services/sqliteService';
+import { dbService } from '../../common/services/dbService';
 import { syncService } from '../../common/services/syncService';
 
 // --- ENTITY ADAPTER ---
@@ -19,11 +19,11 @@ const notificationsAdapter = createEntityAdapter<Notification>({
 export const hydrateNotifications = createAsyncThunk<Notification[], void, { state: any }>(
   'notifications/hydrate',
   async (_, thunkAPI) => {
-    const notifications = await sqliteService.getAll('notifications');
+    const notifications = await dbService.getAll('notifications');
 
     await syncService.performSync(thunkAPI.dispatch, thunkAPI.getState);
 
-    const syncedNotifications = await sqliteService.getAll('notifications');
+    const syncedNotifications = await dbService.getAll('notifications');
     // The data from DB is plain object, we can cast it if structure matches
     return syncedNotifications as Notification[];
   },
@@ -41,7 +41,7 @@ export const addNotificationDb = createAsyncThunk<
     notificationData.sendAt,
   );
   const notifToSave = { ...newNotification, is_dirty: 1 };
-  await sqliteService.create('notifications', notifToSave);
+  await dbService.create('notifications', notifToSave);
   return newNotification;
 });
 
@@ -49,7 +49,7 @@ export const markAsReadDb = createAsyncThunk<Update<Notification>, string>(
   'notifications/markAsRead',
   async (notificationId) => {
     const update = { id: notificationId, changes: { isRead: 1, is_dirty: 1 } };
-    await sqliteService.update('notifications', notificationId, update.changes);
+    await dbService.update('notifications', notificationId, update.changes);
     return update;
   },
 );
@@ -57,7 +57,7 @@ export const markAsReadDb = createAsyncThunk<Update<Notification>, string>(
 export const removeNotificationDb = createAsyncThunk<string, string>(
   'notifications/remove',
   async (notificationId) => {
-    await sqliteService.delete('notifications', notificationId);
+    await dbService.delete('notifications', notificationId);
     return notificationId;
   },
 );

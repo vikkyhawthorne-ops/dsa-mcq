@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { UserEngagement, Achievement } from './primitives/UserEngagement';
-import { sqliteService } from '../../common/services/sqliteService';
+import { dbService } from '../../common/services/dbService';
 import { syncService } from '../../common/services/syncService';
 import { API_BASE_URL } from '../../learning/services/learningService';
 
@@ -31,13 +31,13 @@ const initialState: UserEngagementState = {
 export const hydrateUserEngagements = createAsyncThunk<UserEngagement[], void, { state: any }>(
   'userEngagement/hydrate',
   async (_, thunkAPI) => {
-    const engagements = await sqliteService.getAll('user_engagement');
+    const engagements = await dbService.getAll('user_engagement');
 
     // After hydrating from local DB, perform a two-way sync
     await syncService.performSync(thunkAPI.dispatch, thunkAPI.getState);
 
     // Re-fetch from local DB to get the synced data
-    const syncedEngagements = await sqliteService.getAll('user_engagement');
+    const syncedEngagements = await dbService.getAll('user_engagement');
     return syncedEngagements as UserEngagement[];
   },
 );
@@ -45,11 +45,11 @@ export const hydrateUserEngagements = createAsyncThunk<UserEngagement[], void, {
 export const setUserEngagementDb = createAsyncThunk<UserEngagement, string>(
   'userEngagement/set',
   async (userId) => {
-    let engagement = await sqliteService.getById('user_engagement', userId);
+    let engagement = await dbService.getById('user_engagement', userId);
     if (!engagement) {
       engagement = new UserEngagement(userId);
       const engagementToSave = { ...engagement, is_dirty: 1 };
-      await sqliteService.create('user_engagement', engagementToSave);
+      await dbService.create('user_engagement', engagementToSave);
     }
     return engagement as UserEngagement;
   },
@@ -59,24 +59,24 @@ export const updateStreakDb = createAsyncThunk<
   UserEngagement,
   { userId: string; didAttend: boolean }
 >('userEngagement/updateStreak', async ({ userId, didAttend }) => {
-  const existingData = await sqliteService.getById('user_engagement', userId);
+  const existingData = await dbService.getById('user_engagement', userId);
   const engagement = existingData
     ? Object.assign(new UserEngagement(userId), existingData)
     : new UserEngagement(userId);
   engagement.updateStreak(didAttend);
-  await sqliteService.update('user_engagement', userId, { ...engagement, is_dirty: 1 });
+  await dbService.update('user_engagement', userId, { ...engagement, is_dirty: 1 });
   return engagement;
 });
 
 export const addXpDb = createAsyncThunk<UserEngagement, { userId: string; points: number }>(
   'userEngagement/addXp',
   async ({ userId, points }) => {
-    const existingData = await sqliteService.getById('user_engagement', userId);
+    const existingData = await dbService.getById('user_engagement', userId);
     const engagement = existingData
       ? Object.assign(new UserEngagement(userId), existingData)
       : new UserEngagement(userId);
     engagement.addXp(points);
-    await sqliteService.update('user_engagement', userId, { ...engagement, is_dirty: 1 });
+    await dbService.update('user_engagement', userId, { ...engagement, is_dirty: 1 });
     return engagement;
   },
 );

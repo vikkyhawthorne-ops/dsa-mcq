@@ -4,7 +4,7 @@ import { learningService } from '../services/learningService';
 import { UserQuestionData } from './primitives/UserQuestionData';
 
 import { setUserQuestionDataDb } from './userQuestionData.slice';
-import { sqliteService } from '../../common/services/sqliteService';
+import { dbService } from '../../common/services/dbService';
 import { fetchBatchFeedback } from './question.slice';
 import { syncService } from '../../common/services/syncService';
 
@@ -54,12 +54,12 @@ export const hydrateLearningSession = createAsyncThunk<any | null, void, { state
   'learningSession/hydrate',
   async (_, thunkAPI) => {
 
-    const sessions = await sqliteService.getAll('learning_sessions');
+    const sessions = await dbService.getAll('learning_sessions');
 
     await syncService.performSync(thunkAPI.dispatch, thunkAPI.getState);
 
     // Re-fetch after sync
-    const syncedSessions = await sqliteService.getAll('learning_sessions');
+    const syncedSessions = await dbService.getAll('learning_sessions');
 
     if (syncedSessions.length > 0) return JSON.parse(JSON.stringify(parseSession(syncedSessions[syncedSessions.length - 1])));
 
@@ -71,7 +71,7 @@ export const saveSessionDb = createAsyncThunk(
     'learningSession/saveSessionDb',
     async (session: LearningSession) => {
 
-        await sqliteService.create('learning_sessions', stringifySession(session));
+        await dbService.create('learning_sessions', stringifySession(session));
 
         return JSON.parse(JSON.stringify(session));
     }

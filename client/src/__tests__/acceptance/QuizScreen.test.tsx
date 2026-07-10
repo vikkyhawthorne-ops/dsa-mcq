@@ -80,7 +80,7 @@ const server = setupServer(
   })
 );
 
-// Mock SQLite Service
+// Mock SQLite Service and DB Service
 let mockDb: { [key: string]: any } = {};
 jest.mock('../../components/common/services/sqliteService', () => ({
   sqliteService: {
@@ -94,6 +94,22 @@ jest.mock('../../components/common/services/sqliteService', () => ({
         return Promise.resolve();
     }),
     getAll: jest.fn().mockResolvedValue([]),
+  }
+}));
+
+jest.mock('../../components/common/services/dbService', () => ({
+  dbService: {
+    getById: jest.fn((table, id) => Promise.resolve(mockDb[id])),
+    create: jest.fn((table, data) => {
+        if (data.id) mockDb[data.id] = data;
+        return Promise.resolve();
+    }),
+    update: jest.fn((table, id, data) => {
+        mockDb[id] = { ...mockDb[id], ...data };
+        return Promise.resolve();
+    }),
+    getAll: jest.fn().mockResolvedValue([]),
+    runQuery: jest.fn().mockResolvedValue([{ rows: { raw: () => [] } }]),
   }
 }));
 

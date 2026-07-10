@@ -1,5 +1,5 @@
 import { Anomaly, AnomalyType, AnomalySeverity } from '../store/primitives/Anomaly';
-import { sqliteService } from '../../common/services/sqliteService';
+import { dbService } from '../../common/services/dbService';
 
 class AnalyticsService {
 
@@ -14,7 +14,7 @@ class AnalyticsService {
             evidence: JSON.stringify(anomaly.evidence),
             is_dirty: 1,
         };
-        await sqliteService.create('anomalies', anomalyToSave);
+        await dbService.create('anomalies', anomalyToSave);
     }
 
     // --- Native-dependent checks (Scaffolded/Mocked) ---

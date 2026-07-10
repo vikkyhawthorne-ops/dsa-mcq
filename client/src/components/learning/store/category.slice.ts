@@ -6,7 +6,7 @@ import {
   Update,
 } from '@reduxjs/toolkit';
 import { Category } from './primitives/Category';
-import { sqliteService } from '../../common/services/sqliteService';
+import { dbService } from '../../common/services/dbService';
 import { syncService } from '../../common/services/syncService';
 
 // --- ENTITY ADAPTER ---
@@ -17,16 +17,16 @@ const categoriesAdapter = createEntityAdapter<Category>({
 // --- ASYNC THUNKS ---
 
 /**
- * Hydrates the categories state from the SQLite database.
+ * Hydrates the categories state from the database.
  */
 export const hydrateCategories = createAsyncThunk<Category[], void, { state: any }>(
   'categories/hydrate',
   async (_, thunkAPI) => {
-    const categories = await sqliteService.getAll('categories');
+    const categories = await dbService.getAll('categories');
 
     await syncService.performSync(thunkAPI.dispatch, thunkAPI.getState);
 
-    const syncedCategories = await sqliteService.getAll('categories');
+    const syncedCategories = await dbService.getAll('categories');
     return syncedCategories as Category[];
   },
 );
@@ -40,7 +40,7 @@ export const addCategoryDb = createAsyncThunk<
 >('categories/addCategoryDb', async ({ id, name, masteryScore }) => {
   const newCategory = new Category(id, name, masteryScore);
   const categoryToSave = { ...newCategory, updatedAt: Date.now(), is_dirty: 1 };
-  await sqliteService.create('categories', categoryToSave);
+  await dbService.create('categories', categoryToSave);
   return newCategory;
 });
 
@@ -52,7 +52,7 @@ export const updateCategoryDb = createAsyncThunk<
   Update<Category>
 >('categories/updateCategoryDb', async (update) => {
   const payload = { ...update.changes, is_dirty: 1 };
-  await sqliteService.update('categories', update.id as string, payload);
+  await dbService.update('categories', update.id as string, payload);
   return update;
 });
 
@@ -62,7 +62,7 @@ export const updateCategoryDb = createAsyncThunk<
 export const removeCategoryDb = createAsyncThunk<string, string>(
   'categories/removeCategoryDb',
   async (categoryId) => {
-    await sqliteService.delete('categories', categoryId);
+    await dbService.delete('categories', categoryId);
     return categoryId;
   },
 );
