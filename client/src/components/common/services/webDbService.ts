@@ -1,40 +1,15 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 
-const isNode = typeof window === 'undefined';
-
 class WebDbService {
   private initialized = false;
   private db: any = null;
-
-  // Fallback in-memory storage for non-browser/Node environment
-  private mockStore: { [key: string]: any[] } = {};
 
   public async init(): Promise<void> {
     if (this.initialized) {
       return;
     }
 
-    if (isNode) {
-      console.log('[WebDbService] Running in Node.js/Jest. Initializing mock memory DB...');
-      const tables = [
-        'categories',
-        'learning_sessions',
-        'user_question_data',
-        'notifications',
-        'user_engagement',
-        'anomalies',
-        'devops_metrics'
-      ];
-      for (const table of tables) {
-        if (!this.mockStore[table]) {
-          this.mockStore[table] = [];
-        }
-      }
-      this.initialized = true;
-      return;
-    }
-
-    console.log('[WebDbService] Running in Browser. Initializing SQLite WASM + OPFS...');
+    console.log('[WebDbService] Initializing SQLite WASM + OPFS browser database...');
     try {
       const sqlite3 = await sqlite3InitModule({
         print: console.log,
@@ -53,22 +28,7 @@ class WebDbService {
       this.initialized = true;
     } catch (err) {
       console.error('[WebDbService] Failed to load/initialize SQLite WASM:', err);
-      // Fallback to in-memory mock store on Web if WASM load fails
-      const tables = [
-        'categories',
-        'learning_sessions',
-        'user_question_data',
-        'notifications',
-        'user_engagement',
-        'anomalies',
-        'devops_metrics'
-      ];
-      for (const table of tables) {
-        if (!this.mockStore[table]) {
-          this.mockStore[table] = [];
-        }
-      }
-      this.initialized = true;
+      throw err;
     }
   }
 
@@ -172,12 +132,7 @@ class WebDbService {
   public async create(tableName: string, data: any): Promise<any> {
     await this.init();
     if (!this.db) {
-      const tableData = this.mockStore[tableName] || [];
-      const id = data.id || data.userId;
-      const filtered = tableData.filter(item => (item.id || item.userId) !== id);
-      filtered.push(data);
-      this.mockStore[tableName] = filtered;
-      return { rowsAffected: 1 };
+      throw new Error('[WebDbService] Database not initialized');
     }
 
     const columns = Object.keys(data);
@@ -197,9 +152,7 @@ class WebDbService {
   public async getById(tableName: string, id: string): Promise<any | null> {
     await this.init();
     if (!this.db) {
-      const tableData = this.mockStore[tableName] || [];
-      const found = tableData.find(item => (item.id || item.userId) === id);
-      return found || null;
+      throw new Error('[WebDbService] Database not initialized');
     }
 
     const sql = `SELECT * FROM ${tableName} WHERE id = ? OR userId = ?`;
@@ -218,7 +171,7 @@ class WebDbService {
   public async getAll(tableName: string): Promise<any[]> {
     await this.init();
     if (!this.db) {
-      return this.mockStore[tableName] || [];
+      throw new Error('[WebDbService] Database not initialized');
     }
 
     const sql = `SELECT * FROM ${tableName}`;
@@ -236,15 +189,7 @@ class WebDbService {
   public async update(tableName: string, id: string, data: any): Promise<any> {
     await this.init();
     if (!this.db) {
-      const tableData = this.mockStore[tableName] || [];
-      const updated = tableData.map(item => {
-        if ((item.id || item.userId) === id) {
-          return { ...item, ...data };
-        }
-        return item;
-      });
-      this.mockStore[tableName] = updated;
-      return { rowsAffected: 1 };
+      throw new Error('[WebDbService] Database not initialized');
     }
 
     const keys = Object.keys(data);
@@ -264,10 +209,7 @@ class WebDbService {
   public async delete(tableName: string, id: string): Promise<any> {
     await this.init();
     if (!this.db) {
-      const tableData = this.mockStore[tableName] || [];
-      const filtered = tableData.filter(item => (item.id || item.userId) !== id);
-      this.mockStore[tableName] = filtered;
-      return { rowsAffected: 1 };
+      throw new Error('[WebDbService] Database not initialized');
     }
 
     const sql = `DELETE FROM ${tableName} WHERE id = ? OR userId = ?`;
@@ -281,44 +223,7 @@ class WebDbService {
   public async runQuery(sql: string, params: any[] = []): Promise<any> {
     await this.init();
     if (!this.db) {
-      console.log('[WebDbService] Mock runQuery:', sql, params);
-      const selectMatch = sql.match(/SELECT\s+\*\s+FROM\s+(\w+)(?:\s+WHERE\s+(\w+)\s*=\s*(\d+))?/i);
-      if (selectMatch) {
-        const tableName = selectMatch[1];
-        const whereCol = selectMatch[2];
-        const whereVal = selectMatch[3];
-        let data = this.mockStore[tableName] || [];
-        if (whereCol && whereVal !== undefined) {
-          data = data.filter(item => String(item[whereCol]) === String(whereVal));
-        }
-        return [{
-          rows: {
-            raw: () => data,
-            length: data.length,
-            item: (index: number) => data[index],
-          }
-        }];
-      }
-
-      const insertReplaceMatch = sql.match(/INSERT\s+OR\s+REPLACE\s+INTO\s+(\w+)\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)/i);
-      if (insertReplaceMatch) {
-        const tableName = insertReplaceMatch[1];
-        const cols = insertReplaceMatch[2].split(',').map(s => s.trim());
-        const record: any = {};
-        cols.forEach((col, idx) => {
-          record[col] = params[idx];
-        });
-        await this.create(tableName, record);
-        return [{ rowsAffected: 1 }];
-      }
-
-      return [{
-        rows: {
-          raw: () => [],
-          length: 0,
-          item: () => null,
-        }
-      }];
+      throw new Error('[WebDbService] Database not initialized');
     }
 
     const rows: any[] = [];

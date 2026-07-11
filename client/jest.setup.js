@@ -110,3 +110,6 @@ jest.mock('react-native-ui-lib', () => {
     },
   };
 });
+
+// Mock webDbService for Jest/testing environment
+jest.mock('./src/components/common/services/webDbService');
