@@ -82,3 +82,4 @@ mcq_dataset.csv
 */**/mcq_dataset.csv
 *.csv
 .vscode/
+web/dist/
