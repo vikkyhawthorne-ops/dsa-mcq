@@ -36,9 +36,9 @@ const AchievementScreen: React.FC<ScreenProps> = ({ navigation, route }) => {
         imagePath: 'client/src/engagement/components/mockup/original-6b0784cb19d1d688a7a939d8d3dd637f.jpg',
     });
 
-    const badgeImageMapping = typeof require !== 'undefined' ? {
+    const badgeImageMapping = {
         '1': require('../components/engagement/components/mockup/original-6b0784cb19d1d688a7a939d8d3dd637f.jpg'),
-    } : { '1': null };
+    };
 
     return (
         <View style={styles.container}>
@@ -51,7 +51,7 @@ const AchievementScreen: React.FC<ScreenProps> = ({ navigation, route }) => {
                 {badgeId ? (
                     <BadgeDetails
                         badge={getBadgeData(badgeId)}
-                        imageSource={badgeImageMapping[badgeId as keyof typeof badgeImageMapping]}
+                        imageSource={badgeImageMapping[badgeId]}
                     />
                 ) : (
                     engagementComponent.renderAchievements('achievements', navigation)
