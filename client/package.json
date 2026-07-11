@@ -7,7 +7,10 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "web": "vite --config web/vite.config.js",
+    "web:build": "vite build --config web/vite.config.js",
+    "web:preview": "vite preview --config web/vite.config.js"
   },
   "dependencies": {
     "@google/genai": "^1.13.0",
@@ -22,6 +25,7 @@
     "dotenv": "^17.2.2",
     "fast-text-encoding": "^1.0.6",
     "react": "19.2.0",
+    "react-dom": "^19.2.7",
     "react-native": "0.83.2",
     "react-native-app-auth": "^8.0.3",
     "react-native-exception-handler": "^2.10.10",
@@ -33,6 +37,7 @@
     "react-native-ui-lib": "^7.46.3",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-vector-icons": "^10.3.0",
+    "react-native-web": "^0.21.2",
     "react-redux": "^9.2.0",
     "redux": "^5.0.0"
   },
@@ -57,6 +62,7 @@
     "@types/react-native-vector-icons": "^6.4.18",
     "@types/react-test-renderer": "^19",
     "@types/redux-mock-store": "^1.5.0",
+    "@vitejs/plugin-react": "^6.0.3",
     "babel-jest": "^30.1.2",
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "babel-plugin-module-resolver": "^5.0.2",
@@ -74,6 +80,8 @@
     "test-renderer": "^0.14.0",
     "ts-jest": "^29.4.1",
     "typescript": "5.0.4",
+    "vite": "^8.1.4",
+    "vite-plugin-static-copy": "^4.1.1",
     "whatwg-fetch": "^3.6.20"
   },
   "engines": {

@@ -5,7 +5,7 @@ import {
   createAsyncThunk,
   Update,
 } from '@reduxjs/toolkit';
-import { Category } from './primitives/Category';
+import type { Category } from './primitives/Category';
 import { sqliteService } from '../../common/services/sqliteService';
 import { syncService } from '../../common/services/syncService';
 

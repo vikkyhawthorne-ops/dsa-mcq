@@ -378,4 +378,22 @@ const userSlice = createSlice({
 });
 
 export const { setCurrentUser, setToken, setSyncKey, clearAuthError } = userSlice.actions;
+
+// Stub thunks for verification code flows used in PasswordResetScreen
+export const verifyCode = createAsyncThunk<
+  { token: string },
+  { email: string; code: string },
+  { rejectValue: string }
+>('user/verifyCode', async ({ email, code }, { rejectWithValue }) => {
+  return { token: 'mock-verified-token' };
+});
+
+export const requestVerificationCode = createAsyncThunk<
+  void,
+  { email: string },
+  { rejectValue: string }
+>('user/requestVerificationCode', async ({ email }, { rejectWithValue }) => {
+  return;
+});
+
 export default userSlice.reducer;
