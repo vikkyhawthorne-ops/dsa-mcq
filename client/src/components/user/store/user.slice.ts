@@ -379,7 +379,7 @@ const userSlice = createSlice({
 
 export const { setCurrentUser, setToken, setSyncKey, clearAuthError } = userSlice.actions;
 
-// Stub thunks for verification code flows used in PasswordResetScreen
+// TODO: These thunks are left as stubs because verification code verification flows are currently not implemented on the server-side auth (which uses direct token-based reset link via request-password-reset).
 export const verifyCode = createAsyncThunk<
   { token: string },
   { email: string; code: string },
