@@ -379,21 +379,49 @@ const userSlice = createSlice({
 
 export const { setCurrentUser, setToken, setSyncKey, clearAuthError } = userSlice.actions;
 
-// TODO: These thunks are left as stubs because verification code verification flows are currently not implemented on the server-side auth (which uses direct token-based reset link via request-password-reset).
+// Password reset token verification thunk calling /api/auth/verify-reset-token
 export const verifyCode = createAsyncThunk<
   { token: string },
   { email: string; code: string },
   { rejectValue: string }
 >('user/verifyCode', async ({ email, code }, { rejectWithValue }) => {
-  return { token: 'mock-verified-token' };
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-reset-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: code }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Invalid or expired code');
+    }
+    const data = await response.json();
+    return { token: data.token || code };
+  } catch (err: any) {
+    return rejectWithValue(err.message || 'Verification failed');
+  }
 });
 
+// Resend verification code thunk using api request reset endpoint
 export const requestVerificationCode = createAsyncThunk<
-  void,
+  { message: string },
   { email: string },
   { rejectValue: string }
 >('user/requestVerificationCode', async ({ email }, { rejectWithValue }) => {
-  return;
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/request-password-reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to request code');
+    }
+    return await response.json();
+  } catch (err: any) {
+    return rejectWithValue(err.message || 'Failed to request code');
+  }
 });
 
 export default userSlice.reducer;
