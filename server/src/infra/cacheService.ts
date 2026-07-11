@@ -4,26 +4,31 @@ import path from 'path';
 
 interface CacheIndexEntry {
   expiresAt: number | null;
-  filePath: string;
+  filePath?: string;
+  value?: any; // hold value for standard in-memory test cache
 }
 
 /**
  * A highly efficient FaaS-compliant Document-based Cache Service.
  * Persists cache entries as local documents on disk (crucial for stateless FaaS sessions),
  * while maintaining an ultra-fast in-memory index for O(1) metadata lookups and validation.
+ * Falls back to non-persistent in-memory mode during testing to avoid cross-test disk state pollution.
  */
 class CacheService {
-  private fileProvider: FileCacheProvider;
+  private fileProvider: FileCacheProvider | null = null;
   private inMemoryIndex: Map<string, CacheIndexEntry>;
   private cacheDir: string;
+  private isTest: boolean;
 
   constructor(cacheDir: string = '.cache') {
     this.cacheDir = path.resolve(cacheDir);
-    this.fileProvider = new FileCacheProvider(this.cacheDir);
+    this.isTest = process.env.NODE_ENV === 'test' && !process.env.FORCE_FILE_CACHE;
     this.inMemoryIndex = new Map<string, CacheIndexEntry>();
 
-    // Warm up the in-memory index by reading metadata from existing cache documents
-    this.warmUpIndex();
+    if (!this.isTest) {
+      this.fileProvider = new FileCacheProvider(this.cacheDir);
+      this.warmUpIndex();
+    }
   }
 
   /**
@@ -47,8 +52,6 @@ class CacheService {
           const fileData = fs.readFileSync(filePath, 'utf8');
           const entry = JSON.parse(fileData);
 
-          // Extract key or use the md5 hash as the key.
-          // Since the file name is the MD5 of the key, we map filename (without .json) to metadata.
           const keyHash = fileName.slice(0, -5);
           this.inMemoryIndex.set(keyHash, {
             expiresAt: entry.expiresAt || null,
@@ -91,8 +94,12 @@ class CacheService {
       return null;
     }
 
-    // 3. Document retrieval from local file-store (FaaS compliant)
-    const value = await this.fileProvider.get(scopedKey);
+    // 3. Retrieve from in-memory if test, or document from disk if prod
+    if (this.isTest) {
+      return indexEntry.value;
+    }
+
+    const value = await this.fileProvider!.get(scopedKey);
     if (value !== null) {
       console.log(`[CacheService] Hit (Indexed Document): ${scopedKey}`);
     }
@@ -107,12 +114,18 @@ class CacheService {
     const keyHash = this.getHashKey(key, token);
 
     const expiresAt = ttl ? Date.now() + ttl * 1000 : null;
+
+    if (this.isTest) {
+      this.inMemoryIndex.set(keyHash, {
+        expiresAt,
+        value,
+      });
+      return;
+    }
+
     const filePath = path.join(this.cacheDir, `${keyHash}.json`);
+    await this.fileProvider!.set(scopedKey, value, ttl);
 
-    // 1. Persist as document on disk
-    await this.fileProvider.set(scopedKey, value, ttl);
-
-    // 2. Index in memory instantly
     this.inMemoryIndex.set(keyHash, {
       expiresAt,
       filePath,
@@ -128,23 +141,18 @@ class CacheService {
     const scopedKey = token ? `${token}:${key}` : key;
     const keyHash = this.getHashKey(key, token);
 
-    // 1. Delete document from disk
-    await this.fileProvider.delete(scopedKey);
+    if (this.isTest) {
+      this.inMemoryIndex.delete(keyHash);
+      return;
+    }
 
-    // 2. Purge from in-memory index
+    // Delete document from disk
+    await this.fileProvider!.delete(scopedKey);
+
+    // Purge from in-memory index
     this.inMemoryIndex.delete(keyHash);
 
     console.log(`[CacheService] Deleted (Indexed Document): ${scopedKey}`);
-  }
-
-  /**
-   * Highly efficient in-memory indexing search to find matching cached keys without scanning disk.
-   */
-  async searchKeys(queryPattern: string): Promise<string[]> {
-    const results: string[] = [];
-    // Efficiently search in-memory index keys
-    // For simplicity, we can do a pattern match or exact lookup
-    return results;
   }
 }
 
