@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import CryptoJS from 'crypto-js';
 
 // -------------------- Types --------------------
 export interface UserObject {
@@ -30,6 +31,20 @@ const initialState: UserState = {
 };
 
 const API_BASE_URL = 'http://localhost:3000/api';
+
+const getClientSecret = () => {
+  return (typeof process !== 'undefined' && process.env && process.env.JWT_SECRET) || 'test-secret';
+};
+
+const getSignedHeaders = (body: any) => {
+  const secret = getClientSecret();
+  const bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
+  const signature = CryptoJS.HmacSHA256(bodyStr, secret).toString();
+  return {
+    'Content-Type': 'application/json',
+    'x-client-signature': signature,
+  };
+};
 
 export interface AuthResponse {
   token: string;
@@ -165,10 +180,11 @@ export const requestPasswordReset = createAsyncThunk<
   { rejectValue: string }
 >('user/requestPasswordReset', async ({ email }, { rejectWithValue }) => {
   try {
+    const body = JSON.stringify({ email });
     const response = await fetch(`${API_BASE_URL}/auth/request-password-reset`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      headers: getSignedHeaders(body),
+      body,
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -187,10 +203,11 @@ export const resetPassword = createAsyncThunk<
   { rejectValue: string }
 >('user/resetPassword', async ({ token, newPassword }, { rejectWithValue }) => {
   try {
+    const body = JSON.stringify({ token, password: newPassword });
     const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, password: newPassword }),
+      headers: getSignedHeaders(body),
+      body,
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -386,10 +403,11 @@ export const verifyCode = createAsyncThunk<
   { rejectValue: string }
 >('user/verifyCode', async ({ email, code }, { rejectWithValue }) => {
   try {
+    const body = JSON.stringify({ token: code });
     const response = await fetch(`${API_BASE_URL}/auth/verify-reset-token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: code }),
+      headers: getSignedHeaders(body),
+      body,
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -409,10 +427,11 @@ export const requestVerificationCode = createAsyncThunk<
   { rejectValue: string }
 >('user/requestVerificationCode', async ({ email }, { rejectWithValue }) => {
   try {
+    const body = JSON.stringify({ email });
     const response = await fetch(`${API_BASE_URL}/auth/request-password-reset`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      headers: getSignedHeaders(body),
+      body,
     });
     if (!response.ok) {
       const errorData = await response.json();

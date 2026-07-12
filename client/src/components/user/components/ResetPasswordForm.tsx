@@ -17,7 +17,7 @@ import { resetPassword } from "../store/user.slice";
 import { useNavigation } from "@react-navigation/native"; // ⚡ add this
 
 interface ResetPasswordFormProps {
-  resetToken: string | null;
+  resetToken?: string | null;
   onCancel?: () => void;
 }
 

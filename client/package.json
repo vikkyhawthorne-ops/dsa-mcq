@@ -84,7 +84,7 @@
     "test-renderer": "^0.14.0",
     "ts-jest": "^29.4.1",
     "typescript": "5.0.4",
-    "vite": "^8.1.4",
+    "vite": "^6.0.3",
     "whatwg-fetch": "^3.6.20"
   },
   "engines": {
