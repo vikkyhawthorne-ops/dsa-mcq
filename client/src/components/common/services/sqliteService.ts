@@ -14,6 +14,13 @@ const DATABASE_LOCATION = 'default';
  */
 class SQLiteService {
   private db: SQLiteDatabase | null = null;
+  private entities: { name: string; fields: string[] }[] = [];
+
+  public registerEntity(name: string, fields: string[]): void {
+    if (!this.entities.some(e => e.name === name)) {
+      this.entities.push({ name, fields });
+    }
+  }
 
   /**
    * Initializes the database connection.
@@ -43,95 +50,34 @@ class SQLiteService {
    */
   private async createTables(): Promise<void> {
     const db = this.getDB();
-    const queries = [
-      `CREATE TABLE IF NOT EXISTS categories (
-        id TEXT PRIMARY KEY NOT NULL,
-        name TEXT,
-        masteryScore REAL,
-        createdAt INTEGER,
-        updatedAt INTEGER,
-        is_dirty INTEGER DEFAULT 0
-      );`,
-      `CREATE TABLE IF NOT EXISTS learning_sessions (
-        id TEXT PRIMARY KEY NOT NULL,
-        userId TEXT,
-        allQuestionIds TEXT,
-        questionIds TEXT,
-        subsetHistory TEXT,
-        currentQuestionIndex INTEGER,
-        answers TEXT,
-        summary TEXT,
-        startTime INTEGER,
-        endTime INTEGER,
-        createdAt INTEGER,
-        updatedAt INTEGER,
-        is_dirty INTEGER DEFAULT 0
-      );`,
-      `CREATE TABLE IF NOT EXISTS user_question_data (
-        id TEXT PRIMARY KEY NOT NULL,
-        questionId TEXT NOT NULL,
-        userId TEXT NOT NULL,
-        correctAttempts INTEGER,
-        totalAttempts INTEGER,
-        recallStrength REAL,
-        lastAttemptTimestamp INTEGER,
-        techniqueTransferScores TEXT,
-        sm2 TEXT,
-        createdAt INTEGER,
-        updatedAt INTEGER,
-        is_dirty INTEGER DEFAULT 0
-      );`,
-      `CREATE TABLE IF NOT EXISTS notifications (
-        id TEXT PRIMARY KEY NOT NULL,
-        userId TEXT,
-        message TEXT,
-        type TEXT,
-        isRead INTEGER,
-        createdAt INTEGER,
-        updatedAt INTEGER,
-        sendAt INTEGER,
-        is_dirty INTEGER DEFAULT 0
-      );`,
-      `CREATE TABLE IF NOT EXISTS user_engagement (
-        userId TEXT PRIMARY KEY NOT NULL,
-        session_attendance REAL,
-        streak_length INTEGER,
-        response_latency REAL,
-        xp_progress REAL,
-        leaderboard_rank INTEGER,
-        last_session_timestamp INTEGER,
-        createdAt INTEGER,
-        updatedAt INTEGER,
-        is_dirty INTEGER DEFAULT 0
-      );`,
-      `CREATE TABLE IF NOT EXISTS anomalies (
-        id TEXT PRIMARY KEY NOT NULL,
-        metricId TEXT,
-        type TEXT NOT NULL,
-        severity TEXT NOT NULL,
-        timestamp INTEGER NOT NULL,
-        updatedAt INTEGER,
-        deviation REAL,
-        evidence TEXT,
-        is_dirty INTEGER DEFAULT 0
-      );`,
-      `CREATE TABLE IF NOT EXISTS devops_metrics (
-        id TEXT PRIMARY KEY NOT NULL,
-        type TEXT NOT NULL,
-        payload TEXT NOT NULL,
-        createdAt INTEGER,
-        updatedAt INTEGER,
-        is_dirty INTEGER DEFAULT 0
-      );`,
-    ];
 
     try {
-      for (const sql of queries) {
+      for (const entity of this.entities) {
+        const isUserEngagement = entity.name === 'user_engagement';
+        const primaryKey = isUserEngagement ? 'userId' : 'id';
+
+        const columnsDef = entity.fields.map(field => {
+          if (field === primaryKey) {
+            return `${field} TEXT PRIMARY KEY NOT NULL`;
+          }
+          return `${field} TEXT`;
+        }).join(', ');
+
+        const sql = `CREATE TABLE IF NOT EXISTS ${entity.name} (${columnsDef});`;
         await db.executeSql(sql);
+
+        // Column migration support if needed
+        for (const column of entity.fields) {
+          try {
+            await db.executeSql(`ALTER TABLE ${entity.name} ADD COLUMN ${column} TEXT;`);
+          } catch (e) {
+            // Column already exists, ignore
+          }
+        }
       }
-      console.log('[SQLiteService] All tables created successfully.');
+      console.log('[SQLiteService] All dynamically registered tables created successfully.');
     } catch (error) {
-      console.error('[SQLiteService] Error creating tables:', error);
+      console.error('[SQLiteService] Error creating dynamically registered tables:', error);
       throw new Error('Failed to create database tables.');
     }
   }

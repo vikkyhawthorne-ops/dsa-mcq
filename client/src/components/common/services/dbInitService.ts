@@ -12,6 +12,17 @@ import { syncService } from '@/components/common/services/syncService';
  */
 export const initializeDatabase = async (dispatch: any, getState: any) => {
   try {
+    console.log('[dbInitService] Registering store entities dynamically...');
+    if (typeof (dbService as any).registerEntity === 'function') {
+      (dbService as any).registerEntity('categories', ['id', 'name', 'masteryScore', 'createdAt', 'updatedAt', 'is_dirty']);
+      (dbService as any).registerEntity('learning_sessions', ['id', 'userId', 'allQuestionIds', 'questionIds', 'subsetHistory', 'currentQuestionIndex', 'answers', 'summary', 'startTime', 'endTime', 'createdAt', 'updatedAt', 'is_dirty']);
+      (dbService as any).registerEntity('user_question_data', ['id', 'questionId', 'userId', 'correctAttempts', 'totalAttempts', 'recallStrength', 'lastAttemptTimestamp', 'techniqueTransferScores', 'sm2', 'createdAt', 'updatedAt', 'is_dirty']);
+      (dbService as any).registerEntity('notifications', ['id', 'userId', 'message', 'type', 'isRead', 'createdAt', 'updatedAt', 'sendAt', 'is_dirty']);
+      (dbService as any).registerEntity('user_engagement', ['userId', 'session_attendance', 'streak_length', 'response_latency', 'xp_progress', 'leaderboard_rank', 'last_session_timestamp', 'createdAt', 'updatedAt', 'is_dirty']);
+      (dbService as any).registerEntity('anomalies', ['id', 'metricId', 'type', 'severity', 'timestamp', 'updatedAt', 'deviation', 'evidence', 'is_dirty']);
+      (dbService as any).registerEntity('devops_metrics', ['id', 'type', 'payload', 'createdAt', 'updatedAt', 'is_dirty']);
+    }
+
     console.log('[dbInitService] Starting database persistence initialization...');
     await dbService.init();
 
