@@ -29,19 +29,6 @@ export default function UserProfileContent({ AdComponent }: { AdComponent?: Reac
     };
   }, [dispatch]);
   const { currentUser, loading, error } = useSelector((state: RootState) => state.user);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const animation = Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 1200,
-      useNativeDriver: true,
-    });
-    animation.start();
-    return () => {
-      animation.stop();
-    };
-  }, [fadeAnim]);
 
   const user = {
     name: currentUser?.fullName || "Sammy Skott",
