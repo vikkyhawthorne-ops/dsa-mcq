@@ -6,10 +6,37 @@ import { LearningComponent } from './components/learning/interface';
 import { EngagementComponent } from './components/engagement/interface';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from './store';
+import NetInfo from '@react-native-community/netinfo';
+import Toast from './components/common/components/Toast';
 
 const Mediator: React.FC = () => {
   const [initialRoute, setInitialRoute] = useState<'Welcome' | 'Home' | null>(null);
   const dispatch: AppDispatch = useDispatch();
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+
+  useEffect(() => {
+    let lastState: boolean | null = null;
+
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const isConnected = !!state.isConnected;
+
+      if (lastState !== null && lastState !== isConnected) {
+        if (isConnected) {
+          setToastMessage('Connection established');
+          setToastVisible(true);
+        } else {
+          setToastMessage('Network connection lost');
+          setToastVisible(true);
+        }
+      }
+      lastState = isConnected;
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const initialize = async () => {
@@ -44,7 +71,16 @@ const Mediator: React.FC = () => {
     );
   }
 
-  return <AppNavigator initialRouteName={initialRoute} />;
+  return (
+    <View style={{ flex: 1 }}>
+      <AppNavigator initialRouteName={initialRoute} />
+      <Toast
+        message={toastMessage}
+        visible={toastVisible}
+        onHide={() => setToastVisible(false)}
+      />
+    </View>
+  );
 };
 
 export default Mediator;

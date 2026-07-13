@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ScrollView, StyleSheet, View, TouchableOpacity, TextInput, FlatList } from 'react-native';
 import { Text, ActivityIndicator, Divider } from 'react-native-paper';
 import { useSelector, useDispatch } from 'react-redux';
+import Spinner from '../../common/components/Spinner';
 import { UserRootState } from '../store';
 import { toggleBookmark } from '../store/userProfile.slice';
 import { QuestionResponse } from '../store/primitives/UserProfile';
@@ -148,6 +149,7 @@ const BookmarkList = () => {
 
     return (
         <View style={styles.container}>
+            <Spinner visible={loading} />
             <View style={styles.searchContainer}>
                 <Feather name="search" size={20} color="#888" style={styles.searchIcon} />
                 <TextInput

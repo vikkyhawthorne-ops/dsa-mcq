@@ -10,6 +10,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store';
 import { requestPasswordReset } from '../components/user/store';
+import Spinner from '../components/common/components/Spinner';
 
 type RootStackParamList = {
   VerifyCodeScreen: undefined;
@@ -55,6 +56,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <Spinner visible={loading} />
 
       <View style={styles.header}>
         <IconButton icon="arrow-left" size={24} onPress={() => navigation.goBack()} />
