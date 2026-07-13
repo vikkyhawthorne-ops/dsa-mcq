@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
+import { useSelector, useDispatch } from 'react-redux';
 
 import { EngagementComponent } from '../components/engagement/interface';
 import { UserComponent } from '../components/user/interface';
 import BackButton from '../components/common/components/BackButton';
 import BottomNav from '../components/common/components/BottomNav';
 import BadgeDetails from '../components/engagement/components/BadgeDetails';
+import { fetchAllAchievements } from '../components/engagement/store/userEngagement.slice';
 
 type RootStackParamList = {
     Home: undefined;
@@ -22,22 +24,29 @@ interface ScreenProps {
 }
 
 const AchievementScreen: React.FC<ScreenProps> = ({ navigation, route }) => {
+    const dispatch = useDispatch<any>();
     const engagementComponent = new EngagementComponent();
     const userComponent = new UserComponent();
     const badgeId = route.params?.badgeId;
 
-    // This is a placeholder. In a real app, you'd fetch this from the store.
-    const getBadgeData = (id: string) => ({
-        id: id,
+    // TODO: Fetch all achievements dynamically using api thunks
+    useEffect(() => {
+        dispatch(fetchAllAchievements());
+    }, [dispatch]);
+
+    // Select achievements from Redux state
+    const allAchievements = useSelector((state: any) => state.userEngagement?.allAchievements || []);
+    const badge = allAchievements.find((a: any) => a.id === badgeId) || {
+        id: badgeId || '',
         name: 'Fitness God',
         description: 'Achieve the highest rank in fitness quizzes.',
         achieved: true,
         unlockCriteria: 'Reach level 100 in Fitness.',
-        imagePath: 'client/src/engagement/components/mockup/original-6b0784cb19d1d688a7a939d8d3dd637f.jpg',
-    });
+        imagePath: '',
+    };
 
     const badgeImageMapping = {
-        '1': require('../components/engagement/components/mockup/original-6b0784cb19d1d688a7a939d8d3dd637f.jpg'),
+        '1': null,
     };
 
     return (
@@ -50,8 +59,8 @@ const AchievementScreen: React.FC<ScreenProps> = ({ navigation, route }) => {
             <View style={styles.content}>
                 {badgeId ? (
                     <BadgeDetails
-                        badge={getBadgeData(badgeId)}
-                        imageSource={badgeImageMapping[badgeId]}
+                        badge={badge}
+                        imageSource={badgeImageMapping[badgeId as keyof typeof badgeImageMapping]}
                     />
                 ) : (
                     engagementComponent.renderAchievements('achievements', navigation)

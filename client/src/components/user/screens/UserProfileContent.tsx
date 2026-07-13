@@ -5,6 +5,7 @@ import {
   Dimensions,
   StyleSheet,
   TouchableOpacity,
+  Platform,
 } from "react-native";
 import { View, Text, Button, Image, Avatar } from 'react-native-ui-lib';
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -29,6 +30,23 @@ export default function UserProfileContent({ AdComponent }: { AdComponent?: Reac
     };
   }, [dispatch]);
   const { currentUser, loading, error } = useSelector((state: RootState) => state.user);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (Platform.OS === 'web' || (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test')) {
+      fadeAnim.setValue(1);
+      return;
+    }
+    const animation = Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1200,
+      useNativeDriver: Platform.OS !== 'web',
+    });
+    animation.start();
+    return () => {
+      animation.stop();
+    };
+  }, [fadeAnim]);
 
   const user = {
     name: currentUser?.fullName || "Sammy Skott",
@@ -41,120 +59,122 @@ export default function UserProfileContent({ AdComponent }: { AdComponent?: Reac
   const [menuVisible, setMenuVisible] = useState(false);
 
   return (
-    <View flex bg-grey80>
-      <Spinner visible={loading} />
-      {/* Header */}
-      <View row spread centerV paddingH-20 paddingV-10 marginB-20 marginT-40>
-        <View row centerV>
-            <BackButton
-            navigation={navigation as any}
-            style={styles.backButton}
-            iconName="chevron-left"
-            iconSize={24}
-            iconColor="#111"
-            />
-            <Text text70b color_grey10 testID="screen-title" marginL-10>User profile</Text>
-        </View>
+    <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
+      <View flex bg-grey80>
+        <Spinner visible={loading} />
+        {/* Header */}
+        <View row spread centerV paddingH-20 paddingV-10 marginB-20 marginT-40>
+          <View row centerV>
+              <BackButton
+              navigation={navigation as any}
+              style={styles.backButton}
+              iconName="chevron-left"
+              iconSize={24}
+              iconColor="#111"
+              />
+              <Text text70b color_grey10 testID="screen-title" marginL-10>User profile</Text>
+          </View>
 
-        <View row centerV>
-            <TouchableOpacity onPress={() => setMenuVisible(!menuVisible)} testID="menu-button">
-                <Ionicons name="ellipsis-vertical" size={24} color="#111" />
-            </TouchableOpacity>
-            <UserProfileSummary showGreeting={false} />
-        </View>
-      </View>
-
-      {menuVisible && (
-          <View absR marginT-80 marginR-20 bg-white br20 padding-10 style={styles.cardShadow}>
-              <TouchableOpacity onPress={() => setMenuVisible(false)}>
-                  <Text text80 color_grey10>Coin history</Text>
+          <View row centerV>
+              <TouchableOpacity onPress={() => setMenuVisible(!menuVisible)} testID="menu-button">
+                  <Ionicons name="ellipsis-vertical" size={24} color="#111" />
               </TouchableOpacity>
+              <UserProfileSummary showGreeting={false} />
           </View>
-      )}
+        </View>
 
-      {error && (
-        <View paddingH-20 marginB-20>
-          <View bg-red80 br20 padding-15 style={styles.cardShadow} testID="error-message">
-            <View row centerV>
-              <Ionicons name="alert-circle" size={20} color="#B00020" />
-              <Text marginL-10 text80 color-red10 flex>{error}</Text>
+        {menuVisible && (
+            <View absR marginT-80 marginR-20 bg-white br20 padding-10 style={styles.cardShadow}>
+                <TouchableOpacity onPress={() => setMenuVisible(false)}>
+                    <Text text80 color_grey10>Coin history</Text>
+                </TouchableOpacity>
             </View>
-            <Button
-              label="Retry"
-              size={Button.sizes.xSmall}
-              marginT-10
-              outline
-              outlineColor="#B00020"
-              color="#B00020"
-              onPress={() => dispatch(fetchUserProfile())}
-              testID="retry-button"
-            />
-          </View>
-        </View>
-      )}
+        )}
 
-      <View centerH marginB-20>
-        <View style={styles.avatarContainer}>
-          <Avatar size={100} source={{ uri: user.avatarUri }} />
-          <View style={styles.levelBadge}>
-             <Text white text100b>+12 gxp</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* User Name Block */}
-      <View paddingH-20 marginB-16>
-        <View row spread centerV bg-white br20 paddingH-20 paddingV-15 style={styles.cardShadow} testID="user-name-block" accessibilityLabel={`User name: ${user.name}`}>
-          <Text text60b color_grey10>{user.name}</Text>
-          <TouchableOpacity style={styles.editButton} testID="edit-icon" accessibilityLabel="Edit user name">
-            <Ionicons name="pencil" size={16} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Stats Block */}
-      <View paddingH-20 marginB-20>
-        <View bg-white br20 padding-20 style={styles.cardShadow} testID="user-stats-block" accessibilityLabel="User statistics">
-          <View row spread centerV marginB-15>
-            <View row centerV>
-               <Ionicons name="flash" size={20} color="#FF7A3C" />
-               <Text text80 color_grey10 marginL-10>Level</Text>
-            </View>
-            <Text text80b color_grey10>{user.level}</Text>
-          </View>
-          <View height={1} bg-grey70 marginB-15 />
-          <View row spread centerV marginB-15>
-            <View row centerV>
-               <Ionicons name="trophy" size={20} color="#FFD700" />
-               <Text text80 color_grey10 marginL-10>Achievements</Text>
-            </View>
-            <Text text80b color_grey10>{user.achievements}</Text>
-          </View>
-          <View height={1} bg-grey70 marginB-15 />
-          <View row spread centerV>
-            <View row centerV>
-               <Ionicons name="gift" size={20} color="#4CAF50" />
-               <Text text80 color_grey10 marginL-10>Weekly gifts</Text>
-            </View>
-            <Text text80b color_grey10>{user.weeklyGifts}</Text>
-          </View>
-        </View>
-      </View>
-
-      {AdComponent && (
-        <View centerH paddingH-20>
-          <AdComponent />
-        </View>
-      )}
-
-      {!AdComponent && (
-          <View centerH paddingH-20 marginT-20>
-              <View style={styles.placeholderAd}>
-                  <Text grey40>Advertisement Space</Text>
+        {error && (
+          <View paddingH-20 marginB-20>
+            <View bg-red80 br20 padding-15 style={styles.cardShadow} testID="error-message">
+              <View row centerV>
+                <Ionicons name="alert-circle" size={20} color="#B00020" />
+                <Text marginL-10 text80 color-red10 flex>{error}</Text>
               </View>
+              <Button
+                label="Retry"
+                size={Button.sizes.xSmall}
+                marginT-10
+                outline
+                outlineColor="#B00020"
+                color="#B00020"
+                onPress={() => dispatch(fetchUserProfile())}
+                testID="retry-button"
+              />
+            </View>
           </View>
-      )}
-    </View>
+        )}
+
+        <View centerH marginB-20>
+          <View style={styles.avatarContainer}>
+            <Avatar size={100} source={{ uri: user.avatarUri }} />
+            <View style={styles.levelBadge}>
+               <Text white text100b>+12 gxp</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* User Name Block */}
+        <View paddingH-20 marginB-16>
+          <View row spread centerV bg-white br20 paddingH-20 paddingV-15 style={styles.cardShadow} testID="user-name-block" accessibilityLabel={`User name: ${user.name}`}>
+            <Text text60b color_grey10>{user.name}</Text>
+            <TouchableOpacity style={styles.editButton} testID="edit-icon" accessibilityLabel="Edit user name">
+              <Ionicons name="pencil" size={16} color="white" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Stats Block */}
+        <View paddingH-20 marginB-20>
+          <View bg-white br20 padding-20 style={styles.cardShadow} testID="user-stats-block" accessibilityLabel="User statistics">
+            <View row spread centerV marginB-15>
+              <View row centerV>
+                 <Ionicons name="flash" size={20} color="#FF7A3C" />
+                 <Text text80 color_grey10 marginL-10>Level</Text>
+              </View>
+              <Text text80b color_grey10>{user.level}</Text>
+            </View>
+            <View height={1} bg-grey70 marginB-15 />
+            <View row spread centerV marginB-15>
+              <View row centerV>
+                 <Ionicons name="trophy" size={20} color="#FFD700" />
+                 <Text text80 color_grey10 marginL-10>Achievements</Text>
+              </View>
+              <Text text80b color_grey10>{user.achievements}</Text>
+            </View>
+            <View height={1} bg-grey70 marginB-15 />
+            <View row spread centerV>
+              <View row centerV>
+                 <Ionicons name="gift" size={20} color="#4CAF50" />
+                 <Text text80 color_grey10 marginL-10>Weekly gifts</Text>
+              </View>
+              <Text text80b color_grey10>{user.weeklyGifts}</Text>
+            </View>
+          </View>
+        </View>
+
+        {AdComponent && (
+          <View centerH paddingH-20>
+            <AdComponent />
+          </View>
+        )}
+
+        {!AdComponent && (
+            <View centerH paddingH-20 marginT-20>
+                <View style={styles.placeholderAd}>
+                    <Text grey40>Advertisement Space</Text>
+                </View>
+            </View>
+        )}
+      </View>
+    </Animated.View>
   );
 }
 

@@ -43,6 +43,7 @@
     "react-native-vector-icons": "^10.3.0",
     "react-native-web": "^0.21.2",
     "react-redux": "^9.2.0",
+    "react-icons": "^5.0.1",
     "redux": "^5.0.0"
   },
   "devDependencies": {

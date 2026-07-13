@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { EngagementComponent } from '../components/engagement/interface';
 import { UserComponent } from '../components/user/interface';
 import BackButton from '../components/common/components/BackButton';
 import BottomNav from '../components/common/components/BottomNav';
 import BadgeDetails from '../components/engagement/components/BadgeDetails.web';
+import { fetchAllAchievements } from '../components/engagement/store/userEngagement.slice';
 
 interface ScreenProps {
   navigation: any;
@@ -11,18 +13,26 @@ interface ScreenProps {
 }
 
 const AchievementScreen: React.FC<ScreenProps> = ({ navigation, route }) => {
+  const dispatch = useDispatch<any>();
   const engagementComponent = new EngagementComponent();
   const userComponent = new UserComponent();
   const badgeId = route?.params?.badgeId;
 
-  const getBadgeData = (id: string) => ({
-    id: id,
+  // TODO: Fetch all achievements dynamically using api thunks
+  useEffect(() => {
+    dispatch(fetchAllAchievements());
+  }, [dispatch]);
+
+  // Select achievements from Redux state
+  const allAchievements = useSelector((state: any) => state.userEngagement?.allAchievements || []);
+  const badge = allAchievements.find((a: any) => a.id === badgeId) || {
+    id: badgeId || '',
     name: 'Fitness God',
     description: 'Achieve the highest rank in fitness quizzes.',
     achieved: true,
     unlockCriteria: 'Reach level 100 in Fitness.',
     imagePath: '',
-  });
+  };
 
   const badgeImageMapping = {
     '1': null,
@@ -38,7 +48,7 @@ const AchievementScreen: React.FC<ScreenProps> = ({ navigation, route }) => {
       <main style={styles.content}>
         {badgeId ? (
           <BadgeDetails
-            badge={getBadgeData(badgeId)}
+            badge={badge}
             imageSource={badgeImageMapping[badgeId as keyof typeof badgeImageMapping]}
           />
         ) : (

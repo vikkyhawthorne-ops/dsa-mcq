@@ -18,8 +18,6 @@ export default defineConfig({
       "react-native": "react-native-web",
       "@": path.resolve(__dirname, "../src"),
       "@react-native-community/blur": path.resolve(__dirname, "./components/blur.tsx"),
-      "react-native-exception-handler": path.resolve(__dirname, "./components/native-stubs.tsx"),
-      "react-native-app-auth": path.resolve(__dirname, "./components/native-stubs.tsx"),
       "react-native-ui-lib": path.resolve(__dirname, "./components/ui-lib.tsx"),
       "react-native-safe-area-context": path.resolve(__dirname, "./components/safe-area-context.tsx"),
       "react-native-screens": path.resolve(__dirname, "./components/screens.tsx"),
