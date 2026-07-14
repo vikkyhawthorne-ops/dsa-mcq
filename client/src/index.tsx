@@ -7,7 +7,7 @@ import { EngagementComponent } from './components/engagement/interface';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from './store';
 import NetInfo from '@react-native-community/netinfo';
-import Toast from './components/common/components/Toast';
+import Toaster from './components/common/components/toaster';
 
 const Mediator: React.FC = () => {
   const [initialRoute, setInitialRoute] = useState<'Welcome' | 'Home' | null>(null);
@@ -17,15 +17,20 @@ const Mediator: React.FC = () => {
 
   useEffect(() => {
     let lastState: boolean | null = null;
+    let hasBeenDisconnected = false;
 
     const unsubscribe = NetInfo.addEventListener(state => {
       const isConnected = !!state.isConnected;
 
       if (lastState !== null && lastState !== isConnected) {
         if (isConnected) {
-          setToastMessage('Connection established');
-          setToastVisible(true);
+          // connection established event should only fire after a network connection lost event
+          if (hasBeenDisconnected) {
+            setToastMessage('Connection established');
+            setToastVisible(true);
+          }
         } else {
+          hasBeenDisconnected = true;
           setToastMessage('Network connection lost');
           setToastVisible(true);
         }
@@ -74,7 +79,7 @@ const Mediator: React.FC = () => {
   return (
     <View style={{ flex: 1 }}>
       <AppNavigator initialRouteName={initialRoute} />
-      <Toast
+      <Toaster
         message={toastMessage}
         visible={toastVisible}
         onHide={() => setToastVisible(false)}
