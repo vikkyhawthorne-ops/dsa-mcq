@@ -49,14 +49,19 @@ class SyncService {
 
       // 2. Sign and send dirty data to the server
       const body = JSON.stringify(dirtyData);
-      const signature = CryptoJS.HmacSHA256(body, syncKey).toString();
+      const nonce = Math.random().toString(36).substring(7);
+      const timestamp = Date.now().toString();
+      const message = nonce + timestamp + body;
+      const signature = CryptoJS.HmacSHA256(message, syncKey).toString();
 
       const response = await fetch(SYNC_ENDPOINT, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
-            'x-client-signature': signature
+            'x-client-signature': signature,
+            'x-client-nonce': nonce,
+            'x-client-timestamp': timestamp
         },
         body: body,
       });

@@ -38,11 +38,16 @@ const getClientSecret = () => {
 
 const getSignedHeaders = (body: any) => {
   const secret = getClientSecret();
-  const bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
-  const signature = CryptoJS.HmacSHA256(bodyStr, secret).toString();
+  const bodyStr = typeof body === 'string' ? body : (body ? JSON.stringify(body) : '');
+  const nonce = Math.random().toString(36).substring(7);
+  const timestamp = Date.now().toString();
+  const message = nonce + timestamp + bodyStr;
+  const signature = CryptoJS.HmacSHA256(message, secret).toString();
   return {
     'Content-Type': 'application/json',
     'x-client-signature': signature,
+    'x-client-nonce': nonce,
+    'x-client-timestamp': timestamp,
   };
 };
 

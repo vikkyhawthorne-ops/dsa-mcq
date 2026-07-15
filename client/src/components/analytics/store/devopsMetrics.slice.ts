@@ -11,6 +11,40 @@ export const hydrateDevOpsMetrics = createAsyncThunk<DevOpsMetric[]>(
     }
 );
 
+export const syncMetricsWithServer = createAsyncThunk<void, void, { state: any }>(
+    'devopsMetrics/sync',
+    async (_, thunkAPI) => {
+        try {
+            const state = thunkAPI.getState();
+            const token = state.user?.token;
+            if (!token) return;
+
+            const metrics = await sqliteService.getAll('devops_metrics');
+            const dirtyMetrics = metrics.filter(m => m.is_dirty === 1);
+
+            for (const metric of dirtyMetrics) {
+                const response = await fetch('http://localhost:3000/api/analytics/devops', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        type: metric.type,
+                        payload: JSON.parse(metric.payload),
+                    }),
+                });
+
+                if (response.ok) {
+                    await sqliteService.update('devops_metrics', metric.id, { ...metric, is_dirty: 0 });
+                }
+            }
+        } catch (error) {
+            console.error('[syncMetricsWithServer] Failed to sync devops metrics:', error);
+        }
+    }
+);
+
 const devopsMetricsAdapter = createEntityAdapter<DevOpsMetric, String>({
   selectId: (metric) => metric.id,
 });
