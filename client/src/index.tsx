@@ -55,7 +55,7 @@ const Mediator: React.FC = () => {
         const bodyStr = '';
         const nonce = Math.random().toString(36).substring(7);
         const timestamp = Date.now().toString();
-        const secret = 'test-secret'; // aligned with JWT_SECRET fallback
+        const secret = (typeof process !== 'undefined' && process.env && process.env.JWT_SECRET) || 'test-secret';
         const message = nonce + timestamp + bodyStr;
         const signature = CryptoJS.HmacSHA256(message, secret).toString();
 

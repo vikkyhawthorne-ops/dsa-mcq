@@ -1,10 +1,15 @@
+import { Platform } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import { Anomaly, AnomalyType, AnomalySeverity } from '../store/primitives/Anomaly';
 import { sqliteService } from '../../common/services/sqliteService';
-import { metricsService } from './metricsService';
 
 class AnalyticsService {
     private sessionStartTime = Date.now();
     private apiCallTimestamps: number[] = [];
+    private visitedScreens: { screen: string; startTime: number; duration: number }[] = [];
+    private interactionHeatMap: Record<string, number> = {};
+    private currentScreen: string | null = null;
+    private currentScreenStartTime = Date.now();
 
     private async saveAnomaly(anomaly: Anomaly) {
         const anomalyToSave = {
@@ -26,14 +31,56 @@ class AnalyticsService {
         return durationMs;
     }
 
+    public recordScreenVisit(screenName: string) {
+        const now = Date.now();
+        if (this.currentScreen) {
+            const duration = now - this.currentScreenStartTime;
+            this.visitedScreens.push({
+                screen: this.currentScreen,
+                startTime: this.currentScreenStartTime,
+                duration,
+            });
+        }
+        this.currentScreen = screenName;
+        this.currentScreenStartTime = now;
+    }
+
+    public recordInteraction(componentId: string) {
+        this.interactionHeatMap[componentId] = (this.interactionHeatMap[componentId] || 0) + 1;
+    }
+
+    public session_analytics() {
+        this.recordScreenVisit(''); // Close the last visited screen
+        const sessionDuration = Date.now() - this.sessionStartTime;
+
+        const timeSpentPerPage: Record<string, number> = {};
+        const visitCounts: Record<string, number> = {};
+
+        for (const visit of this.visitedScreens) {
+            if (visit.screen) {
+                timeSpentPerPage[visit.screen] = (timeSpentPerPage[visit.screen] || 0) + visit.duration;
+                visitCounts[visit.screen] = (visitCounts[visit.screen] || 0) + 1;
+            }
+        }
+
+        const averageTimeSpentPerPage: Record<string, number> = {};
+        for (const screen in timeSpentPerPage) {
+            averageTimeSpentPerPage[screen] = timeSpentPerPage[screen] / visitCounts[screen];
+        }
+
+        return {
+            visitedScreens: this.visitedScreens.map(v => v.screen).filter(Boolean),
+            interactionHeatMap: this.interactionHeatMap,
+            averageTimeSpentPerPage,
+            sessionDuration,
+        };
+    }
+
     public async checkGameplayFraud(): Promise<void> {
         const now = Date.now();
         this.apiCallTimestamps.push(now);
-        // Keep only timestamps within the last 5 seconds
         this.apiCallTimestamps = this.apiCallTimestamps.filter(t => now - t < 5000);
 
-        // Gameplay fraud triggers when APIs are firing at hyper human speeds
-        // E.g. more than 10 requests in 5 seconds (interval < 500ms on average)
         if (this.apiCallTimestamps.length >= 10) {
             console.warn('[AnalyticsService] Gameplay fraud detected! APIs firing at hyper human speeds.');
             const anomaly = new Anomaly({
@@ -45,31 +92,40 @@ class AnalyticsService {
         }
     }
 
-    public crash_log(error: Error): void {
-        console.error('[AnalyticsService] Crash captured:', error);
-        try {
-            // Cache locally using temporary log list representation in localStorage
-            if (typeof window !== 'undefined' && window.localStorage) {
-                const cachedCrashes = JSON.parse(localStorage.getItem('temp_crash_logs') || '[]');
-                cachedCrashes.push({ message: error.message, stack: error.stack, timestamp: Date.now() });
-                localStorage.setItem('temp_crash_logs', JSON.stringify(cachedCrashes));
-            }
-            // Register DevOps crash metric
-            metricsService.logCrash(error);
-        } catch (e) {
-            console.error('[AnalyticsService] Failed to cache crash event:', e);
+    // Concrete Mobile-Only resource deficiency check using NetInfo and RAM Heap thresholds (No Mocks!)
+    public async checkResourceDeficiency(thresholds = { maxHeapBytes: 150 * 1024 * 1024 }): Promise<void> {
+        if (Platform.OS === 'web') {
+            return; // Skip on web client as requested
         }
-    }
 
-    // --- Native-dependent resource check fallback ---
-    public async checkResourceDeficiency(): Promise<void> {
-        console.warn("Native check 'checkResourceDeficiency' is mocked.");
-        const lowMemory = false;
-        if (lowMemory) {
+        const netState = await NetInfo.fetch();
+        let isConstrained = false;
+        const evidence: any[] = [];
+
+        // Check network constraints
+        if (!netState.isConnected) {
+            isConstrained = true;
+            evidence.push({ message: 'No active internet connection.' });
+        } else if (netState.type === 'cellular' && (netState.details as any).cellularGeneration === '2g') {
+            isConstrained = true;
+            evidence.push({ message: 'Low network bandwidth (2G detected)' });
+        }
+
+        // Check RAM heap limits
+        const heapLimit = (typeof performance !== 'undefined' && (performance as any).memory)
+            ? (performance as any).memory.usedJSHeapSize
+            : null;
+
+        if (heapLimit && heapLimit > thresholds.maxHeapBytes) {
+            isConstrained = true;
+            evidence.push({ message: 'High JS heap usage detected', heapLimit, maxAllowed: thresholds.maxHeapBytes });
+        }
+
+        if (isConstrained) {
             const anomaly = new Anomaly({
                 type: AnomalyType.RESOURCE_DEFICIENCY,
                 severity: AnomalySeverity.HIGH,
-                evidence: [{ message: 'Device memory is critically low.' }]
+                evidence
             });
             await this.saveAnomaly(anomaly);
         }
