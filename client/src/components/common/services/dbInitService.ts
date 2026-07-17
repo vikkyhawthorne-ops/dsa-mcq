@@ -1,5 +1,6 @@
 import { dbService } from '@/components/common/services/dbService';
 import { hydrateCategories } from '@/components/learning/store/category.slice';
+import { API_BASE_URL } from '../../../config';
 import { hydrateLearningSession } from '@/components/learning/store/learningSession.slice';
 import { hydrateUserQuestionData } from '@/components/learning/store/userQuestionData.slice';
 import { hydrateNotifications } from '@/components/engagement/store/notification.slice';
@@ -50,7 +51,7 @@ export const initializeDatabase = async (dispatch: any, getState: any) => {
 
       if (token) {
         try {
-          const response = await fetch('http://localhost:3000/api/sync', {
+          const response = await fetch(`${API_BASE_URL}/sync`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`

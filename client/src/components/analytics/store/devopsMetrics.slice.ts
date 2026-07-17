@@ -1,6 +1,7 @@
 import { createSlice, createEntityAdapter, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { DevOpsMetric } from './primitives/DevOpsMetric';
 import { sqliteService } from '../../common/services/sqliteService';
+import { API_BASE_URL } from '../../../config';
 
 export const hydrateDevOpsMetrics = createAsyncThunk<DevOpsMetric[]>(
     'devopsMetrics/hydrate',
@@ -23,7 +24,7 @@ export const syncMetricsWithServer = createAsyncThunk<void, void, { state: any }
             const dirtyMetrics = metrics.filter(m => m.is_dirty === 1);
 
             for (const metric of dirtyMetrics) {
-                const response = await fetch('http://localhost:3000/api/analytics/devops', {
+                const response = await fetch(`${API_BASE_URL}/analytics/devops`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

@@ -1,7 +1,7 @@
 import { sqliteService } from './sqliteService';
 import CryptoJS from 'crypto-js';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+import { API_BASE_URL } from '../../../config';
 const SYNC_ENDPOINT = `${API_BASE_URL}/sync`;
 
 const TABLES_TO_SYNC = [

@@ -26,51 +26,53 @@ class AnalyticsService {
         await sqliteService.create('anomalies', anomalyToSave);
     }
 
-    public recordScreenVisit(screenName: string) {
-        const now = Date.now();
-        if (this.currentScreen) {
-            const duration = now - this.currentScreenStartTime;
-            this.visitedScreens.push({
-                screen: this.currentScreen,
-                startTime: this.currentScreenStartTime,
-                duration,
-            });
-        }
-        this.currentScreen = screenName;
-        this.currentScreenStartTime = now;
-    }
+    public session_analytics = Object.assign(
+        () => {
+            this.session_analytics.recordScreenVisit(''); // Close the last visited screen
+            const sessionDuration = Date.now() - this.sessionStartTime;
 
-    public recordInteraction(componentId: string) {
-        this.interactionHeatMap[componentId] = (this.interactionHeatMap[componentId] || 0) + 1;
-    }
+            const timeSpentPerPage: Record<string, number> = {};
+            const visitCounts: Record<string, number> = {};
 
-    public session_analytics() {
-        this.recordScreenVisit(''); // Close the last visited screen
-        const sessionDuration = Date.now() - this.sessionStartTime;
+            for (const visit of this.visitedScreens) {
+                if (visit.screen) {
+                    timeSpentPerPage[visit.screen] = (timeSpentPerPage[visit.screen] || 0) + visit.duration;
+                    visitCounts[visit.screen] = (visitCounts[visit.screen] || 0) + 1;
+                }
+            }
 
-        const timeSpentPerPage: Record<string, number> = {};
-        const visitCounts: Record<string, number> = {};
+            const averageTimeSpentPerPage: Record<string, number> = {};
+            for (const screen in timeSpentPerPage) {
+                averageTimeSpentPerPage[screen] = timeSpentPerPage[screen] / visitCounts[screen];
+            }
 
-        for (const visit of this.visitedScreens) {
-            if (visit.screen) {
-                timeSpentPerPage[visit.screen] = (timeSpentPerPage[visit.screen] || 0) + visit.duration;
-                visitCounts[visit.screen] = (visitCounts[visit.screen] || 0) + 1;
+            return {
+                visitedScreens: this.visitedScreens.map(v => v.screen).filter(Boolean),
+                interactionHeatMap: this.interactionHeatMap,
+                averageTimeSpentPerPage,
+                sessionDuration,
+                session_ontime: sessionDuration, // session_ontime merged inside session_analytics
+            };
+        },
+        {
+            recordScreenVisit: (screenName: string) => {
+                const now = Date.now();
+                if (this.currentScreen) {
+                    const duration = now - this.currentScreenStartTime;
+                    this.visitedScreens.push({
+                        screen: this.currentScreen,
+                        startTime: this.currentScreenStartTime,
+                        duration,
+                    });
+                }
+                this.currentScreen = screenName;
+                this.currentScreenStartTime = now;
+            },
+            recordInteraction: (componentId: string) => {
+                this.interactionHeatMap[componentId] = (this.interactionHeatMap[componentId] || 0) + 1;
             }
         }
-
-        const averageTimeSpentPerPage: Record<string, number> = {};
-        for (const screen in timeSpentPerPage) {
-            averageTimeSpentPerPage[screen] = timeSpentPerPage[screen] / visitCounts[screen];
-        }
-
-        return {
-            visitedScreens: this.visitedScreens.map(v => v.screen).filter(Boolean),
-            interactionHeatMap: this.interactionHeatMap,
-            averageTimeSpentPerPage,
-            sessionDuration,
-            session_ontime: sessionDuration, // session_ontime is evaluated and merged inside session_analytics
-        };
-    }
+    );
 
     public async checkGameplayFraud(): Promise<void> {
         const now = Date.now();

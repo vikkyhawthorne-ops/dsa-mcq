@@ -30,7 +30,8 @@ const initialState: UserState = {
   error: null,
 };
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const HOST_SERVER_ADDRESS = (typeof process !== 'undefined' && process.env?.HOST_SERVER_ADDRESS) || 'http://localhost:3000';
+const API_BASE_URL = `${HOST_SERVER_ADDRESS}/api`;
 
 const getClientSecret = () => {
   return (typeof process !== 'undefined' && process.env && process.env.JWT_SECRET) || 'test-secret';

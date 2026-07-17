@@ -29,7 +29,8 @@ export async function devopsHandler(
       return res.status(403).json({ message: 'Forbidden: Admins only' });
     }
 
-    const devopsMetrics = await analyticsService.getDevOpsMetrics();
+    const userIdQuery = req.query.userId as string | undefined;
+    const devopsMetrics = await analyticsService.getDevOpsMetrics(new Date(), 30 * 24 * 60 * 60 * 1000, userIdQuery);
     const averageUserPerformance = await engagementService.getAverageUserPerformance();
 
     res.status(200).json({
@@ -45,6 +46,7 @@ export async function devopsHandler(
       data: {
         type,
         payload: JSON.stringify(payload),
+        userId: req.user.id, // Properly scope and tie the metrics to the authenticated user ID
       },
     });
     res.status(201).json(newMetric);

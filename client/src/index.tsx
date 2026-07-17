@@ -9,6 +9,7 @@ import { AppDispatch } from './store';
 import NetInfo from '@react-native-community/netinfo';
 import Toaster from './components/common/components/toaster';
 import CryptoJS from 'crypto-js';
+import { API_BASE_URL } from './config';
 
 const Mediator: React.FC = () => {
   const [initialRoute, setInitialRoute] = useState<'Welcome' | 'Home' | null>(null);
@@ -60,7 +61,7 @@ const Mediator: React.FC = () => {
         const signature = CryptoJS.HmacSHA256(message, secret).toString();
 
         // Challenge check to server index/homepage
-        const response = await fetch('http://localhost:3000/api/', {
+        const response = await fetch(`${API_BASE_URL}/`, {
           method: 'GET',
           headers: {
             'x-client-signature': signature,

@@ -14,6 +14,7 @@ import DailyQuizSummaryScreen from '../screens/DailyQuizSummaryScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import PasswordResetScreen from '../screens/PasswordResetScreen';
 import GoalScreen from '../screens/GoalScreen';
+import NotFoundScreen from '../screens/NotFoundScreen';
 
 const Stack = createStackNavigator();
 
@@ -41,6 +42,7 @@ const AppNavigator: React.FC<NavigatorProps> = ({ initialRouteName }) => {
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="PasswordReset" component={PasswordResetScreen} />
         <Stack.Screen name="Goal" component={GoalScreen} />
+        <Stack.Screen name="NotFound" component={NotFoundScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
