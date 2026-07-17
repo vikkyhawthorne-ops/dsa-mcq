@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { Anomaly, AnomalyType, AnomalySeverity } from '../store/primitives/Anomaly';
 import { sqliteService } from '../../common/services/sqliteService';
+import { metricsService } from './metricsService';
 
 class AnalyticsService {
     private sessionStartTime = Date.now();
@@ -23,12 +24,6 @@ class AnalyticsService {
             is_dirty: 1,
         };
         await sqliteService.create('anomalies', anomalyToSave);
-    }
-
-    public session_ontime(): number {
-        const durationMs = Date.now() - this.sessionStartTime;
-        console.log(`[AnalyticsService] Client session on-time evaluated: ${durationMs}ms`);
-        return durationMs;
     }
 
     public recordScreenVisit(screenName: string) {
@@ -73,6 +68,7 @@ class AnalyticsService {
             interactionHeatMap: this.interactionHeatMap,
             averageTimeSpentPerPage,
             sessionDuration,
+            session_ontime: sessionDuration, // session_ontime is evaluated and merged inside session_analytics
         };
     }
 
@@ -92,11 +88,19 @@ class AnalyticsService {
         }
     }
 
-    // Concrete Mobile-Only resource deficiency check using NetInfo and RAM Heap thresholds (No Mocks!)
-    public async checkResourceDeficiency(thresholds = { maxHeapBytes: 150 * 1024 * 1024 }): Promise<void> {
+    // Concrete Mobile-Only resource deficiency check using NetInfo and RAM Heap thresholds configurable via Env Variables
+    public async checkResourceDeficiency(): Promise<void> {
         if (Platform.OS === 'web') {
             return; // Skip on web client as requested
         }
+
+        const MIN_BANDWIDTH_KBPS = (typeof process !== 'undefined' && process.env?.MIN_BANDWIDTH_KBPS)
+            ? parseInt(process.env.MIN_BANDWIDTH_KBPS, 10)
+            : 1000;
+
+        const MAX_HEAP_BYTES = (typeof process !== 'undefined' && process.env?.MAX_HEAP_BYTES)
+            ? parseInt(process.env.MAX_HEAP_BYTES, 10)
+            : 150 * 1024 * 1024;
 
         const netState = await NetInfo.fetch();
         let isConstrained = false;
@@ -108,7 +112,7 @@ class AnalyticsService {
             evidence.push({ message: 'No active internet connection.' });
         } else if (netState.type === 'cellular' && (netState.details as any).cellularGeneration === '2g') {
             isConstrained = true;
-            evidence.push({ message: 'Low network bandwidth (2G detected)' });
+            evidence.push({ message: 'Low network bandwidth (2G detected)', threshold: MIN_BANDWIDTH_KBPS });
         }
 
         // Check RAM heap limits
@@ -116,9 +120,9 @@ class AnalyticsService {
             ? (performance as any).memory.usedJSHeapSize
             : null;
 
-        if (heapLimit && heapLimit > thresholds.maxHeapBytes) {
+        if (heapLimit && heapLimit > MAX_HEAP_BYTES) {
             isConstrained = true;
-            evidence.push({ message: 'High JS heap usage detected', heapLimit, maxAllowed: thresholds.maxHeapBytes });
+            evidence.push({ message: 'High JS heap usage detected', heapLimit, maxAllowed: MAX_HEAP_BYTES });
         }
 
         if (isConstrained) {
