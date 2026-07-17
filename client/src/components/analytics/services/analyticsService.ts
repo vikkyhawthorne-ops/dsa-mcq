@@ -26,9 +26,27 @@ class AnalyticsService {
         await sqliteService.create('anomalies', anomalyToSave);
     }
 
+    public recordScreenVisit(screenName: string) {
+        const now = Date.now();
+        if (this.currentScreen) {
+            const duration = now - this.currentScreenStartTime;
+            this.visitedScreens.push({
+                screen: this.currentScreen,
+                startTime: this.currentScreenStartTime,
+                duration,
+            });
+        }
+        this.currentScreen = screenName;
+        this.currentScreenStartTime = now;
+    }
+
+    public recordInteraction(componentId: string) {
+        this.interactionHeatMap[componentId] = (this.interactionHeatMap[componentId] || 0) + 1;
+    }
+
     public session_analytics = Object.assign(
         () => {
-            this.session_analytics.recordScreenVisit(''); // Close the last visited screen
+            this.recordScreenVisit(''); // Close the last visited screen
             const sessionDuration = Date.now() - this.sessionStartTime;
 
             const timeSpentPerPage: Record<string, number> = {};
@@ -104,6 +122,14 @@ class AnalyticsService {
             ? parseInt(process.env.MAX_HEAP_BYTES, 10)
             : 150 * 1024 * 1024;
 
+        const MAX_PING_MS = (typeof process !== 'undefined' && process.env?.MAX_PING_MS)
+            ? parseInt(process.env.MAX_PING_MS, 10)
+            : 150;
+
+        const MIN_RAM_GB = (typeof process !== 'undefined' && process.env?.MIN_RAM_GB)
+            ? parseInt(process.env.MIN_RAM_GB, 10)
+            : 2;
+
         const netState = await NetInfo.fetch();
         let isConstrained = false;
         const evidence: any[] = [];
@@ -115,6 +141,22 @@ class AnalyticsService {
         } else if (netState.type === 'cellular' && (netState.details as any).cellularGeneration === '2g') {
             isConstrained = true;
             evidence.push({ message: 'Low network bandwidth (2G detected)', threshold: MIN_BANDWIDTH_KBPS });
+        }
+
+        // Check latency (Ping above 150ms should be considered high latency and captured)
+        // Since we are checking constraints on the device, we can estimate ping/latency using netState
+        // Or if details contain response latency
+        const currentPing = (netState.details as any)?.latency || 0;
+        if (currentPing > MAX_PING_MS) {
+            isConstrained = true;
+            evidence.push({ message: `High network latency detected: ${currentPing}ms`, limit: MAX_PING_MS });
+        }
+
+        // Check RAM limits (ram below 2gb should be captured as low memory)
+        const totalRamGb = (navigator as any)?.deviceMemory || 4; // fallback to 4GB if unsupported
+        if (totalRamGb < MIN_RAM_GB) {
+            isConstrained = true;
+            evidence.push({ message: `Low device memory detected: ${totalRamGb}GB RAM`, limit: MIN_RAM_GB });
         }
 
         // Check RAM heap limits
