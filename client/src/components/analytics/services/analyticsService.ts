@@ -3,6 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { Anomaly, AnomalyType, AnomalySeverity } from '../store/primitives/Anomaly';
 import { sqliteService } from '../../common/services/sqliteService';
 import { metricsService } from './metricsService';
+import { API_BASE_URL } from '../../../config';
 
 class AnalyticsService {
     private sessionStartTime = Date.now();
@@ -108,7 +109,7 @@ class AnalyticsService {
         }
     }
 
-    // Concrete Mobile-Only resource deficiency check using NetInfo and RAM Heap thresholds configurable via Env Variables
+    // Concrete Mobile-Only resource deficiency check using NetInfo and Device RAM size
     public async checkResourceDeficiency(): Promise<void> {
         if (Platform.OS === 'web') {
             return; // Skip on web client as requested
@@ -117,10 +118,6 @@ class AnalyticsService {
         const MIN_BANDWIDTH_KBPS = (typeof process !== 'undefined' && process.env?.MIN_BANDWIDTH_KBPS)
             ? parseInt(process.env.MIN_BANDWIDTH_KBPS, 10)
             : 1000;
-
-        const MAX_HEAP_BYTES = (typeof process !== 'undefined' && process.env?.MAX_HEAP_BYTES)
-            ? parseInt(process.env.MAX_HEAP_BYTES, 10)
-            : 150 * 1024 * 1024;
 
         const MAX_PING_MS = (typeof process !== 'undefined' && process.env?.MAX_PING_MS)
             ? parseInt(process.env.MAX_PING_MS, 10)
@@ -144,29 +141,26 @@ class AnalyticsService {
         }
 
         // Check latency (Ping above 150ms should be considered high latency and captured)
-        // Since we are checking constraints on the device, we can estimate ping/latency using netState
-        // Or if details contain response latency
-        const currentPing = (netState.details as any)?.latency || 0;
+        // Measured against a host server endpoint
+        let currentPing = 0;
+        const pingStart = Date.now();
+        try {
+            await fetch(`${API_BASE_URL}/health`, { method: 'GET' });
+            currentPing = Date.now() - pingStart;
+        } catch (error) {
+            currentPing = 999; // Fallback to high value if request fails
+        }
+
         if (currentPing > MAX_PING_MS) {
             isConstrained = true;
             evidence.push({ message: `High network latency detected: ${currentPing}ms`, limit: MAX_PING_MS });
         }
 
-        // Check RAM limits (ram below 2gb should be captured as low memory)
+        // Check RAM limits of the device (ram below 2gb should be captured as low memory)
         const totalRamGb = (navigator as any)?.deviceMemory || 4; // fallback to 4GB if unsupported
         if (totalRamGb < MIN_RAM_GB) {
             isConstrained = true;
             evidence.push({ message: `Low device memory detected: ${totalRamGb}GB RAM`, limit: MIN_RAM_GB });
-        }
-
-        // Check RAM heap limits
-        const heapLimit = (typeof performance !== 'undefined' && (performance as any).memory)
-            ? (performance as any).memory.usedJSHeapSize
-            : null;
-
-        if (heapLimit && heapLimit > MAX_HEAP_BYTES) {
-            isConstrained = true;
-            evidence.push({ message: 'High JS heap usage detected', heapLimit, maxAllowed: MAX_HEAP_BYTES });
         }
 
         if (isConstrained) {
