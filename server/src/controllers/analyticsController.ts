@@ -23,8 +23,9 @@ export class AnalyticsService {
     this.prisma = prisma;
   }
 
-  async getDevOpsMetrics(referenceDate: Date = new Date(), windowMs: number = 30 * 24 * 60 * 60 * 1000): Promise<AnalyticsData> {
-    const metrics = await this.prisma.devOpsMetric.findMany();
+  async getDevOpsMetrics(referenceDate: Date = new Date(), windowMs: number = 30 * 24 * 60 * 60 * 1000, userId?: string): Promise<AnalyticsData> {
+    const whereClause = userId ? { userId } : {};
+    const metrics = await this.prisma.devOpsMetric.findMany({ where: whereClause });
     const sortedMetrics = [...metrics].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     const safeParse = (payload: string) => {

@@ -4,6 +4,13 @@ import 'react-native-gesture-handler/jestSetup';
 import '@testing-library/jest-native/extend-expect';
 import 'whatwg-fetch';
 
+// Mock RNVectorIconsManager on NativeModules to satisfy react-native-paper icon checks
+const { NativeModules } = require('react-native');
+NativeModules.RNVectorIconsManager = {
+  getImageForFont: () => Promise.resolve(''),
+  loadFontWithFileName: () => Promise.resolve(''),
+};
+
 process.env.GEMINI_API_KEY = 'test-key';
 
 // Ensure TextEncoder/Decoder are available (required by MSW 2)
@@ -110,3 +117,6 @@ jest.mock('react-native-ui-lib', () => {
     },
   };
 });
+
+// Mock webDbService for Jest/testing environment
+jest.mock('./src/components/common/services/webDbService');

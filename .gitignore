@@ -22,3 +22,6 @@ dsa-mcq-134aae86ec9e.json
 .env.local
 #*.csv
 .vscode/
+
+# Yarn lock
+yarn.lock

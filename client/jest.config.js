@@ -9,7 +9,7 @@ module.exports = {
     ? ["/node_modules/", "/src/__tests__/integration/"]
     : ["/node_modules/"],
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|react-redux|@reduxjs/toolkit|react-native-paper|react-native-vector-icons|react-native-app-auth|@react-navigation|react-native-gesture-handler|immer|react-native-base64|react-native-ui-lib|uilib-native|react-native-sse|msw|until-async|@mswjs)/)',
+    'node_modules/(?!(react-native|@react-native|react-redux|@reduxjs/toolkit|react-native-paper|react-native-vector-icons|react-native-app-auth|@react-navigation|react-native-gesture-handler|immer|react-native-base64|react-native-ui-lib|uilib-native|react-native-sse|msw|until-async|@mswjs|rettime)/)',
   ],
   moduleNameMapper: {
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':

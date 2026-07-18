@@ -9,7 +9,7 @@ import { Text, Button, TextInput, ProgressBar, IconButton } from 'react-native-p
 import { useDispatch } from 'react-redux';
 import { StackNavigationProp } from '@react-navigation/stack';
 
-import { verifyCode, requestVerificationCode } from '../components/user/store/user.slice';
+import { verifyCode, requestVerificationCode } from '../components/user/store';
 import ResetPasswordForm from '../components/user/components/ResetPasswordForm';
 
 type RootStackParamList = {
@@ -69,14 +69,14 @@ const PasswordResetScreen = ({ navigation, email }: VerificationCodeFormProps) =
 
   // ✅ Render ResetPasswordForm when token verified
   if (verifiedToken) {
-    return <ResetPasswordForm token={verifiedToken} navigation={navigation} />;
+    return <ResetPasswordForm resetToken={verifiedToken} onCancel={() => setVerifiedToken(null)} />;
   }
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      
+
       <View style={styles.header}>
         <IconButton icon="arrow-left" size={24} onPress={() => navigation.goBack()} />
         <Text style={styles.headerTitle}>Verification</Text>

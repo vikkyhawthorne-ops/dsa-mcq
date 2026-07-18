@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import CryptoJS from 'crypto-js';
 
 // -------------------- Types --------------------
 export interface UserObject {
@@ -29,7 +30,27 @@ const initialState: UserState = {
   error: null,
 };
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const HOST_SERVER_ADDRESS = (typeof process !== 'undefined' && process.env?.HOST_SERVER_ADDRESS) || 'http://localhost:3000';
+const API_BASE_URL = `${HOST_SERVER_ADDRESS}/api`;
+
+const getClientSecret = () => {
+  return (typeof process !== 'undefined' && process.env && process.env.JWT_SECRET) || 'test-secret';
+};
+
+const getSignedHeaders = (body: any) => {
+  const secret = getClientSecret();
+  const bodyStr = typeof body === 'string' ? body : (body ? JSON.stringify(body) : '');
+  const nonce = Math.random().toString(36).substring(7);
+  const timestamp = Date.now().toString();
+  const message = nonce + timestamp + bodyStr;
+  const signature = CryptoJS.HmacSHA256(message, secret).toString();
+  return {
+    'Content-Type': 'application/json',
+    'x-client-signature': signature,
+    'x-client-nonce': nonce,
+    'x-client-timestamp': timestamp,
+  };
+};
 
 export interface AuthResponse {
   token: string;
@@ -165,10 +186,11 @@ export const requestPasswordReset = createAsyncThunk<
   { rejectValue: string }
 >('user/requestPasswordReset', async ({ email }, { rejectWithValue }) => {
   try {
+    const body = JSON.stringify({ email });
     const response = await fetch(`${API_BASE_URL}/auth/request-password-reset`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      headers: getSignedHeaders(body),
+      body,
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -187,10 +209,11 @@ export const resetPassword = createAsyncThunk<
   { rejectValue: string }
 >('user/resetPassword', async ({ token, newPassword }, { rejectWithValue }) => {
   try {
+    const body = JSON.stringify({ token, password: newPassword });
     const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, password: newPassword }),
+      headers: getSignedHeaders(body),
+      body,
     });
     if (!response.ok) {
       const errorData = await response.json();
@@ -378,4 +401,52 @@ const userSlice = createSlice({
 });
 
 export const { setCurrentUser, setToken, setSyncKey, clearAuthError } = userSlice.actions;
+
+// Password reset token verification thunk calling /api/auth/verify-reset-token
+export const verifyCode = createAsyncThunk<
+  { token: string },
+  { email: string; code: string },
+  { rejectValue: string }
+>('user/verifyCode', async ({ email, code }, { rejectWithValue }) => {
+  try {
+    const body = JSON.stringify({ token: code });
+    const response = await fetch(`${API_BASE_URL}/auth/verify-reset-token`, {
+      method: 'POST',
+      headers: getSignedHeaders(body),
+      body,
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Invalid or expired code');
+    }
+    const data = await response.json();
+    return { token: data.token || code };
+  } catch (err: any) {
+    return rejectWithValue(err.message || 'Verification failed');
+  }
+});
+
+// Resend verification code thunk using api request reset endpoint
+export const requestVerificationCode = createAsyncThunk<
+  { message: string },
+  { email: string },
+  { rejectValue: string }
+>('user/requestVerificationCode', async ({ email }, { rejectWithValue }) => {
+  try {
+    const body = JSON.stringify({ email });
+    const response = await fetch(`${API_BASE_URL}/auth/request-password-reset`, {
+      method: 'POST',
+      headers: getSignedHeaders(body),
+      body,
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to request code');
+    }
+    return await response.json();
+  } catch (err: any) {
+    return rejectWithValue(err.message || 'Failed to request code');
+  }
+});
+
 export default userSlice.reducer;

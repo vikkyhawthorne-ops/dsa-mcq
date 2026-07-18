@@ -8,7 +8,6 @@ import {
   Paragraph,
   Text,
   ProgressBar,
-  Colors,
 } from "react-native-paper";
 import { BlurView } from "@react-native-community/blur";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -18,7 +17,7 @@ import { resetPassword } from "../store/user.slice";
 import { useNavigation } from "@react-navigation/native"; // ⚡ add this
 
 interface ResetPasswordFormProps {
-  resetToken: string | null;
+  resetToken?: string | null;
   onCancel?: () => void;
 }
 
@@ -80,7 +79,7 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
 
       <ProgressBar
         progress={0.8}
-        color={Colors.green500}
+        color="#4CAF50"
         style={styles.progressBar}
       />
 

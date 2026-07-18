@@ -1,21 +1,36 @@
 import { NextApiResponse } from 'next';
 import { prisma as defaultPrisma } from '../../../infra/prisma/client';
-import { withAdmin } from '../../../utils/withAdmin';
-import { AuthenticatedRequest } from '../../../utils/withAuth';
+import { withAuth, AuthenticatedRequest } from '../../../utils/withAuth';
 import { PrismaClient } from '@prisma/client';
 import { AnalyticsService } from '../../../controllers/analyticsController';
 import { EngagementService } from '../../../controllers/engagementController';
+import { rateLimiter } from '../../../utils/rateLimit';
+
+const limiter = rateLimiter({ windowMs: 60 * 1000, max: 30 }); // 30 requests/minute
 
 export async function devopsHandler(
   req: AuthenticatedRequest,
   res: NextApiResponse,
   deps: { prisma: PrismaClient } = { prisma: defaultPrisma }
 ) {
+  const userId = req.user?.id || 'anonymous';
+  const isLimited = await limiter(userId, res);
+  if (isLimited) {
+    return res.status(429).json({ message: 'Too many requests. Please try again later.' });
+  }
+
   const analyticsService = new AnalyticsService(deps.prisma);
   const engagementService = new EngagementService(deps.prisma);
 
   if (req.method === 'GET') {
-    const devopsMetrics = await analyticsService.getDevOpsMetrics();
+    // Only admins are allowed to GET devops metrics dashboard
+    const role = req.user.role;
+    if (!role || role.toLowerCase() !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: Admins only' });
+    }
+
+    const userIdQuery = req.query.userId as string | undefined;
+    const devopsMetrics = await analyticsService.getDevOpsMetrics(new Date(), 30 * 24 * 60 * 60 * 1000, userIdQuery);
     const averageUserPerformance = await engagementService.getAverageUserPerformance();
 
     res.status(200).json({
@@ -31,6 +46,7 @@ export async function devopsHandler(
       data: {
         type,
         payload: JSON.stringify(payload),
+        userId: req.user.id, // Properly scope and tie the metrics to the authenticated user ID
       },
     });
     res.status(201).json(newMetric);
@@ -40,4 +56,4 @@ export async function devopsHandler(
   }
 }
 
-export default withAdmin(devopsHandler);
+export default withAuth(devopsHandler);

@@ -7,8 +7,10 @@ import {
 } from 'react-native';
 import { Button, TextInput, Text, ProgressBar, IconButton } from 'react-native-paper';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { useAppDispatch, useAppSelector } from '../store/hooks'; // adjust path
-import { requestPasswordReset } from '../store/userSlice'; // adjust path
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '../store';
+import { requestPasswordReset } from '../components/user/store';
+import Spinner from '../components/common/components/Spinner';
 
 type RootStackParamList = {
   VerifyCodeScreen: undefined;
@@ -27,8 +29,8 @@ interface ForgotPasswordScreenProps {
 export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScreenProps) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
-  const dispatch = useAppDispatch();
-  const { loading } = useAppSelector((state) => state.user);
+  const dispatch: AppDispatch = useDispatch();
+  const { loading } = useSelector((state: RootState) => state.user);
 
   const isValidEmail = (val: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
@@ -54,6 +56,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <Spinner visible={loading} />
 
       <View style={styles.header}>
         <IconButton icon="arrow-left" size={24} onPress={() => navigation.goBack()} />

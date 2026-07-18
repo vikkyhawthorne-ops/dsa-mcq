@@ -4,12 +4,21 @@ import { withAuth, AuthenticatedRequest } from '../../utils/withAuth';
 import { withClientSignature } from '../../utils/withClientSignature';
 import { SyncService } from '../../controllers/syncController';
 import { PrismaClient } from '@prisma/client';
+import { rateLimiter } from '../../utils/rateLimit';
+
+const limiter = rateLimiter({ windowMs: 60 * 1000, max: 30 }); // 30 requests/minute
 
 async function syncHandler(
   req: AuthenticatedRequest,
   res: NextApiResponse,
   deps: { prisma: PrismaClient } = { prisma: defaultPrisma }
 ) {
+  const userId = req.user?.id || 'anonymous';
+  const isLimited = await limiter(userId, res);
+  if (isLimited) {
+    return res.status(429).json({ message: 'Too many requests. Please try again later.' });
+  }
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).json({ message: `Method ${req.method} not allowed` });
