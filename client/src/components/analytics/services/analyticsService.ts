@@ -109,7 +109,7 @@ class AnalyticsService {
         }
     }
 
-    // Concrete Mobile-Only resource deficiency check using NetInfo and Device RAM size
+    // Concrete Mobile-Only resource deficiency check using NetInfo and Device RAM size with advanced Constrained Memory Evaluator
     public async checkResourceDeficiency(): Promise<void> {
         if (Platform.OS === 'web') {
             return; // Skip on web client as requested
@@ -122,10 +122,6 @@ class AnalyticsService {
         const MAX_PING_MS = (typeof process !== 'undefined' && process.env?.MAX_PING_MS)
             ? parseInt(process.env.MAX_PING_MS, 10)
             : 150;
-
-        const MIN_RAM_GB = (typeof process !== 'undefined' && process.env?.MIN_RAM_GB)
-            ? parseInt(process.env.MIN_RAM_GB, 10)
-            : 2;
 
         const netState = await NetInfo.fetch();
         let isConstrained = false;
@@ -156,11 +152,58 @@ class AnalyticsService {
             evidence.push({ message: `High network latency detected: ${currentPing}ms`, limit: MAX_PING_MS });
         }
 
-        // Check RAM limits of the device (ram below 2gb should be captured as low memory)
+        // Check device RAM using the advanced Constrained Memory Evaluator formula
+        // Formula: safe os operating conditions + estimated os operational data + program installed * average_size(configurable) + estimated user data size(configurable) - total memory below safe limits for loaded apps in ram
+        const safeOsLimitGb = (typeof process !== 'undefined' && process.env?.SAFE_OS_LIMIT_GB)
+            ? parseFloat(process.env.SAFE_OS_LIMIT_GB)
+            : 1.0;
+
+        const estimatedOsDataGb = (typeof process !== 'undefined' && process.env?.ESTIMATED_OS_DATA_GB)
+            ? parseFloat(process.env.ESTIMATED_OS_DATA_GB)
+            : 0.5;
+
+        const programsInstalled = (typeof process !== 'undefined' && process.env?.PROGRAMS_INSTALLED)
+            ? parseInt(process.env.PROGRAMS_INSTALLED, 10)
+            : 10;
+
+        const averageProgramSizeGb = (typeof process !== 'undefined' && process.env?.AVERAGE_PROGRAM_SIZE_GB)
+            ? parseFloat(process.env.AVERAGE_PROGRAM_SIZE_GB)
+            : 0.05;
+
+        const estimatedUserDataSizeGb = (typeof process !== 'undefined' && process.env?.ESTIMATED_USER_DATA_SIZE_GB)
+            ? parseFloat(process.env.ESTIMATED_USER_DATA_SIZE_GB)
+            : 0.1;
+
+        const totalMemBelowSafeLimitsGb = (typeof process !== 'undefined' && process.env?.TOTAL_MEM_BELOW_SAFE_LIMITS_GB)
+            ? parseFloat(process.env.TOTAL_MEM_BELOW_SAFE_LIMITS_GB)
+            : 0.2;
+
         const totalRamGb = (navigator as any)?.deviceMemory || 4; // fallback to 4GB if unsupported
-        if (totalRamGb < MIN_RAM_GB) {
+
+        const safeConditionsThreshold = safeOsLimitGb + estimatedOsDataGb + (programsInstalled * averageProgramSizeGb) + estimatedUserDataSizeGb - totalMemBelowSafeLimitsGb;
+
+        if (totalRamGb < safeConditionsThreshold) {
             isConstrained = true;
-            evidence.push({ message: `Low device memory detected: ${totalRamGb}GB RAM`, limit: MIN_RAM_GB });
+            evidence.push({
+                message: `Constrained memory constraint triggered: device memory ${totalRamGb}GB is below safe threshold ${safeConditionsThreshold}GB`,
+                details: {
+                    deviceMemoryGb: totalRamGb,
+                    safeConditionsThresholdGb: safeConditionsThreshold,
+                    safeOsLimitGb,
+                    estimatedOsDataGb,
+                    programsInstalled,
+                    averageProgramSizeGb,
+                    estimatedUserDataSizeGb,
+                    totalMemBelowSafeLimitsGb,
+                    clientInstanceMetadata: {
+                        platform: Platform.OS,
+                        version: Platform.Version,
+                        sessionStartTime: this.sessionStartTime,
+                        visitedScreensCount: this.visitedScreens.length,
+                        currentScreen: this.currentScreen,
+                    }
+                }
+            });
         }
 
         if (isConstrained) {
