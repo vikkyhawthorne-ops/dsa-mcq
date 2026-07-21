@@ -109,7 +109,7 @@ class AnalyticsService {
         }
     }
 
-    // Concrete Mobile-Only resource deficiency check using NetInfo and Device RAM size with advanced Constrained Memory Evaluator
+    // Concrete Mobile-Only resource deficiency check using NetInfo and Device RAM size with advanced Constrained Memory & Storage Evaluators
     public async checkResourceDeficiency(): Promise<void> {
         if (Platform.OS === 'web') {
             return; // Skip on web client as requested
@@ -152,7 +152,7 @@ class AnalyticsService {
             evidence.push({ message: `High network latency detected: ${currentPing}ms`, limit: MAX_PING_MS });
         }
 
-        // Check device RAM using the advanced Constrained Memory Evaluator formula
+        // --- 1. Constrained Memory (RAM) Evaluator ---
         // Formula: safe os operating conditions + estimated os operational data + program installed * average_size(configurable) + estimated user data size(configurable) - total memory below safe limits for loaded apps in ram
         const safeOsLimitGb = (typeof process !== 'undefined' && process.env?.SAFE_OS_LIMIT_GB)
             ? parseFloat(process.env.SAFE_OS_LIMIT_GB)
@@ -195,6 +195,57 @@ class AnalyticsService {
                     averageProgramSizeGb,
                     estimatedUserDataSizeGb,
                     totalMemBelowSafeLimitsGb,
+                    clientInstanceMetadata: {
+                        platform: Platform.OS,
+                        version: Platform.Version,
+                        sessionStartTime: this.sessionStartTime,
+                        visitedScreensCount: this.visitedScreens.length,
+                        currentScreen: this.currentScreen,
+                    }
+                }
+            });
+        }
+
+        // --- 2. Constrained Storage Evaluator ---
+        // Formula: safe os operating conditions + estimated os operational data + program installed * average_size(configurable) + estimated user data size(configurable) - total available storage, below safe limits?
+        const safeOsStorageLimitGb = (typeof process !== 'undefined' && process.env?.SAFE_OS_STORAGE_LIMIT_GB)
+            ? parseFloat(process.env.SAFE_OS_STORAGE_LIMIT_GB)
+            : 2.0;
+
+        const estimatedOsStorageDataGb = (typeof process !== 'undefined' && process.env?.ESTIMATED_OS_STORAGE_DATA_GB)
+            ? parseFloat(process.env.ESTIMATED_OS_STORAGE_DATA_GB)
+            : 1.0;
+
+        const storageProgramsInstalled = (typeof process !== 'undefined' && process.env?.STORAGE_PROGRAMS_INSTALLED)
+            ? parseInt(process.env.STORAGE_PROGRAMS_INSTALLED, 10)
+            : 20;
+
+        const averageStorageProgramSizeGb = (typeof process !== 'undefined' && process.env?.AVERAGE_STORAGE_PROGRAM_SIZE_GB)
+            ? parseFloat(process.env.AVERAGE_STORAGE_PROGRAM_SIZE_GB)
+            : 0.1;
+
+        const estimatedStorageUserDataSizeGb = (typeof process !== 'undefined' && process.env?.ESTIMATED_STORAGE_USER_DATA_SIZE_GB)
+            ? parseFloat(process.env.ESTIMATED_STORAGE_USER_DATA_SIZE_GB)
+            : 0.5;
+
+        const totalAvailableStorageGb = (typeof process !== 'undefined' && process.env?.TOTAL_AVAILABLE_STORAGE_GB)
+            ? parseFloat(process.env.TOTAL_AVAILABLE_STORAGE_GB)
+            : 5.0; // Default/Mock available storage in GB
+
+        const storageSafeConditionsThreshold = safeOsStorageLimitGb + estimatedOsStorageDataGb + (storageProgramsInstalled * averageStorageProgramSizeGb) + estimatedStorageUserDataSizeGb;
+
+        if (totalAvailableStorageGb < storageSafeConditionsThreshold) {
+            isConstrained = true;
+            evidence.push({
+                message: `Constrained storage constraint triggered: available storage ${totalAvailableStorageGb}GB is below safe threshold ${storageSafeConditionsThreshold}GB`,
+                details: {
+                    totalAvailableStorageGb,
+                    storageSafeConditionsThresholdGb: storageSafeConditionsThreshold,
+                    safeOsStorageLimitGb,
+                    estimatedOsStorageDataGb,
+                    storageProgramsInstalled,
+                    averageStorageProgramSizeGb,
+                    estimatedStorageUserDataSizeGb,
                     clientInstanceMetadata: {
                         platform: Platform.OS,
                         version: Platform.Version,
